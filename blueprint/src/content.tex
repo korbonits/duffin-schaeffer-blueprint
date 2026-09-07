@@ -123,12 +123,30 @@ own source, and closing it is a contribution to Mathlib independent of this proj
   $0 \leq a \leq q$ imposed.
 \end{definition}
 
-\begin{definition}[The majorant $\pstar$]
+\begin{definition}[The radius $\Psi$ and the majorant $\pstar$]
   \label{def:psistar}
-  \lean{DuffinSchaeffer.psiStar}
+  \lean{DuffinSchaeffer.psiSup, DuffinSchaeffer.psiStar}
   \leanok
-  $\pstar(q) = \varphi(q) \sup \{ \ps(n)/n : q \mid n \}$.
+  $\Psi(q) = \sup \{ \ps(n)/n : q \mid n \}$ and $\pstar(q) = \varphi(q)\Psi(q)$.
+  The supremum is taken in $[0,\infty]$, so it always exists.
 \end{definition}
+
+\begin{lemma}[$\Psi \leq \pstar$]
+  \label{lem:psisup-le-psistar}
+  \lean{DuffinSchaeffer.psiSup_le_psiStar}
+  \leanok
+  \uses{def:psistar}
+  $\Psi(q) \leq \pstar(q)$, and hence $\sum_q \Psi(q) < \infty$ whenever
+  $\sum_q \pstar(q) < \infty$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} $\varphi(q) \geq 1$. Small, but it is what makes the covering argument
+  of Theorem \ref{thm:two-a} work: the convergence hypothesis has to control the
+  \emph{radii} $\Psi(d)$ and not only the weighted radii $\varphi(d)\Psi(d)$.
+  Lean: \texttt{tsum\_psiSup\_lt\_top}.
+\end{proof}
 
 \begin{lemma}[$\Aq$ as a union of balls]
   \label{lem:setaq-union}
@@ -215,6 +233,25 @@ own source, and closing it is a contribution to Mathlib independent of this proj
   denominator admits only finitely many numerators. Without that hypothesis the
   implication genuinely fails, which is why Lemma \ref{lem:truncate} comes first.
   Lean: \texttt{mem\_setA\_iff}.
+\end{proof}
+
+\begin{lemma}[Measurability of $\A$ and $\K$]
+  \label{lem:measurable-seta}
+  \lean{DuffinSchaeffer.measurableSet_setA, DuffinSchaeffer.measurableSet_setK}
+  \leanok
+  \uses{def:seta}
+  $\A(\ps)$ and $\K(\ps)$ are measurable.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} Both are $[0,1]$ intersected with a set of the form
+  $\{\alpha : \{i : \alpha \in B_i\} \text{ infinite}\}$ for a countable family --- here
+  indexed by pairs $(a,q)$, each $B_{(a,q)}$ a closed ball or empty. Such a set equals
+  $\bigcap_{t} \bigcup_{i \notin t} B_i$ over the finite subsets $t$, which is a countable
+  intersection of countable unions because $\mathrm{Finset}\,\iota$ is countable when
+  $\iota$ is. Stated once as \texttt{measurableSet\_setOf\_infinite} and used for both.
+  No hypothesis on $\ps$ is needed.
 \end{proof}
 
 \begin{lemma}[Divergence transfers to the measures]
@@ -531,11 +568,34 @@ which the estimate holds.
 \end{theorem}
 
 \begin{proof}
-  The first Borel--Cantelli lemma, which Mathlib has as
-  \texttt{MeasureTheory.measure\_limsup\_cofinite\_eq\_zero}, applied to the cover of
-  $\K(\ps)$ by the sets attached to $\pstar$. This node needs nothing from Chapters
-  \ref{chap:overlap} or \ref{chap:gcd} and is the recommended first real proof in the
-  project. Lean: \texttt{theorem\_2\_a}.
+  \uses{lem:measurable-seta, lem:psisup-le-psistar}
+  Measurability is done (Lemma \ref{lem:measurable-seta}). For the null statement:
+
+  Given $\alpha \in \K(\ps)$ there are infinitely many pairs $(a,q)$, $a \leq q$, with
+  $|\alpha - a/q| \leq \ps(q)/q$. Reduce $a/q$ to lowest terms $b/d$, $d \mid q$; then
+  $|\alpha - b/d| \leq \ps(q)/q \leq \Psi(d)$. So $\alpha$ lies in
+  \[ E_d := \bigcup_{\substack{0 \le b \le d \\ \gcd(b,d)=1}} \overline{B}(b/d, \Psi(d)), \qquad
+     \Leb(E_d) \leq 2(\varphi(d)+1)\Psi(d) \leq 4\pstar(d), \]
+  the last step by Lemma \ref{lem:psisup-le-psistar}. Since $\sum_d \pstar(d) < \infty$,
+  the first Borel--Cantelli lemma (Mathlib:
+  \texttt{MeasureTheory.measure\_limsup\_cofinite\_eq\_zero}) kills $\limsup_d E_d$.
+
+  \textbf{The gap.} That argument needs infinitely many \emph{distinct} $d$, and the
+  reduction to lowest terms does not supply them: infinitely many pairs can reduce to a
+  single $b/d$. Take $\alpha = 0$, where every pair $(0,q)$ reduces to $0/1$. So the
+  step ``infinitely many pairs, hence infinitely many $d$'' is false as stated.
+
+  Two repairs are needed, and both are cheap once seen. First, discard the rationals:
+  $\mathbb{Q}$ is countable, hence null, so it suffices to treat irrational $\alpha$.
+  Second, note that $\sum_q \pstar(q) < \infty$ forces $\pstar(q) \to 0$, and
+  $\pstar(q) \geq \Psi(q) \geq \ps(q)/q$, so $\ps(q)/q \to 0$. For irrational $\alpha$
+  and fixed $b/d$ we have $|\alpha - b/d| > 0$, so only finitely many $q$ can satisfy
+  $\ps(q)/q \geq |\alpha - b/d|$ --- that is, each $(b,d)$ absorbs only finitely many
+  pairs. Infinitely many pairs therefore do give infinitely many $(b,d)$, and since
+  $b \leq d$ bounds the numerators, infinitely many $d$.
+
+  Worth stating plainly because the flawed version is the one that comes to mind first
+  and it is not visibly wrong. Lean: \texttt{theorem\_2\_a}.
 \end{proof}
 
 \begin{theorem}[Theorem 2(b), divergence]

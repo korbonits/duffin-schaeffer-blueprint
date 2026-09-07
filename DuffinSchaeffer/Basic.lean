@@ -41,9 +41,37 @@ the numerator confined to `0 ≤ a ≤ q`. -/
 def setK (ψ : ℕ+ → ℝ≥0) : Set ℝ :=
   {α ∈ Set.Icc (0 : ℝ) 1 | {(a, q) : ℕ × ℕ+ | a ≤ q ∧ Approximates ψ α a q}.Infinite}
 
-/-- `ψ⋆ q = φ(q) · sup {ψ n / n : q ∣ n}`, the majorant of Theorem 2. -/
+/-- `Ψ(q) = sup {ψ n / n : q ∣ n}`, the radius attached to a denominator `q` after
+reduction to lowest terms. Split out of `psiStar` because every use of the majorant
+needs the supremum on its own. -/
+noncomputable def psiSup (ψ : ℕ+ → ℝ≥0) (q : ℕ+) : ℝ≥0∞ :=
+  sSup {r : ℝ≥0∞ | ∃ n : ℕ+, q ∣ n ∧ r = ψ n / n}
+
+/-- `ψ⋆ q = φ(q) · Ψ(q)`, the majorant of Theorem 2. -/
 noncomputable def psiStar (ψ : ℕ+ → ℝ≥0) : ℕ+ → ℝ≥0∞ :=
-  fun q ↦ φ q * sSup {r : ℝ≥0∞ | ∃ n : ℕ+, q ∣ n ∧ r = ψ n / n}
+  fun q ↦ φ q * psiSup ψ q
+
+theorem psiStar_eq (ψ : ℕ+ → ℝ≥0) (q : ℕ+) : psiStar ψ q = φ (q : ℕ) * psiSup ψ q := rfl
+
+theorem le_psiSup (ψ : ℕ+ → ℝ≥0) {q n : ℕ+} (h : q ∣ n) :
+    (ψ n : ℝ≥0∞) / n ≤ psiSup ψ q :=
+  le_sSup ⟨n, h, rfl⟩
+
+theorem self_div_le_psiSup (ψ : ℕ+ → ℝ≥0) (q : ℕ+) : (ψ q : ℝ≥0∞) / q ≤ psiSup ψ q :=
+  le_psiSup ψ dvd_rfl
+
+theorem one_le_totient (q : ℕ+) : (1 : ℝ≥0∞) ≤ (φ (q : ℕ) : ℝ≥0∞) := by
+  exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.totient_pos.mpr q.pos).ne'
+
+/-- `Ψ ≤ ψ⋆` pointwise, because `φ(q) ≥ 1`. So the convergence hypothesis of Theorem 2
+controls the radii as well as the weighted radii -- which is what makes the covering
+argument work at all. -/
+theorem psiSup_le_psiStar (ψ : ℕ+ → ℝ≥0) (q : ℕ+) : psiSup ψ q ≤ psiStar ψ q :=
+  le_mul_of_one_le_left (by simp) (one_le_totient q)
+
+theorem tsum_psiSup_lt_top (ψ : ℕ+ → ℝ≥0) (h : ∑' q : ℕ+, psiStar ψ q < ⊤) :
+    ∑' q : ℕ+, psiSup ψ q < ⊤ :=
+  lt_of_le_of_lt (ENNReal.tsum_le_tsum (psiSup_le_psiStar ψ)) h
 
 /-! ### The measure of a single `setAq`
 
@@ -186,11 +214,66 @@ counts denominators. -/
 proof_wanted mem_setA_iff (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2) (α : ℝ) :
     α ∈ setA ψ ↔ α ∈ Set.Icc (0 : ℝ) 1 ∧ {q : ℕ+ | α ∈ setAq ψ q}.Infinite
 
-proof_wanted measurableSet_setA (ψ : ℕ+ → ℝ≥0) :
-    MeasurableSet (setA ψ)
+/-- A `limsup` over any countable index is measurable: the set of points lying in
+infinitely many `B i` is `⋂_t ⋃_{i ∉ t} B i`, a countable intersection of countable
+unions, because `Finset ι` is countable when `ι` is.
 
-proof_wanted measurableSet_setK (ψ : ℕ+ → ℝ≥0) :
-    MeasurableSet (setK ψ)
+Both `setA` and `setK` are of this shape -- over pairs `(a, q)` -- so this is stated once
+and used twice. -/
+theorem measurableSet_setOf_infinite {ι : Type*} [Countable ι] {B : ι → Set ℝ}
+    (hB : ∀ i, MeasurableSet (B i)) : MeasurableSet {α : ℝ | {i | α ∈ B i}.Infinite} := by
+  have key : {α : ℝ | {i | α ∈ B i}.Infinite} = ⋂ t : Finset ι, ⋃ i, ⋃ _ : i ∉ t, B i := by
+    ext α
+    simp only [Set.mem_ofPred_eq, Set.mem_iInter, Set.mem_iUnion, exists_prop]
+    constructor
+    · intro h t
+      obtain ⟨i, hi, hit⟩ := h.exists_notMem_finset t
+      exact ⟨i, hit, hi⟩
+    · intro h
+      by_contra hfin
+      rw [Set.not_infinite] at hfin
+      obtain ⟨i, hit, hi⟩ := h hfin.toFinset
+      exact hit (hfin.mem_toFinset.mpr hi)
+  rw [key]
+  exact MeasurableSet.iInter fun t =>
+    MeasurableSet.iUnion fun i => MeasurableSet.iUnion fun _ => hB i
+
+/-- The set cut out by a single pair `(a, q)`: a closed ball, or empty when the side
+condition on the pair fails. -/
+theorem measurableSet_approxPair (ψ : ℕ+ → ℝ≥0) (P : ℕ → ℕ+ → Prop) (a : ℕ) (q : ℕ+) :
+    MeasurableSet {α : ℝ | P a q ∧ Approximates ψ α a q} := by
+  by_cases h : P a q
+  · have : {α : ℝ | P a q ∧ Approximates ψ α a q}
+        = Metric.closedBall ((a : ℝ) / q) ((ψ q : ℝ) / q) := by
+      ext α
+      simp only [Set.mem_ofPred_eq, Metric.mem_closedBall, Real.dist_eq, Approximates, h,
+        true_and]
+    rw [this]
+    exact measurableSet_closedBall
+  · have : {α : ℝ | P a q ∧ Approximates ψ α a q} = ∅ := by
+      ext α; simp [h]
+    rw [this]
+    exact MeasurableSet.empty
+
+theorem measurableSet_setA (ψ : ℕ+ → ℝ≥0) : MeasurableSet (setA ψ) := by
+  have h : setA ψ = Set.Icc 0 1 ∩
+      {α : ℝ | Set.Infinite {p : ℕ × ℕ+ | Nat.Coprime p.1 p.2 ∧ Approximates ψ α p.1 p.2}} := by
+    ext α
+    simp only [setA, Set.mem_ofPred_eq, Set.mem_inter_iff]
+  rw [h]
+  refine measurableSet_Icc.inter (measurableSet_setOf_infinite (B := fun p : ℕ × ℕ+ =>
+    {β : ℝ | Nat.Coprime p.1 p.2 ∧ Approximates ψ β p.1 p.2}) fun p => ?_)
+  exact measurableSet_approxPair ψ (fun a q => Nat.Coprime a q) p.1 p.2
+
+theorem measurableSet_setK (ψ : ℕ+ → ℝ≥0) : MeasurableSet (setK ψ) := by
+  have h : setK ψ = Set.Icc 0 1 ∩
+      {α : ℝ | Set.Infinite {p : ℕ × ℕ+ | p.1 ≤ (p.2 : ℕ) ∧ Approximates ψ α p.1 p.2}} := by
+    ext α
+    simp only [setK, Set.mem_ofPred_eq, Set.mem_inter_iff]
+  rw [h]
+  refine measurableSet_Icc.inter (measurableSet_setOf_infinite (B := fun p : ℕ × ℕ+ =>
+    {β : ℝ | p.1 ≤ (p.2 : ℕ) ∧ Approximates ψ β p.1 p.2}) fun p => ?_)
+  exact measurableSet_approxPair ψ (fun a q => a ≤ (q : ℕ)) p.1 p.2
 
 /-- The divergence hypothesis of Theorem 1, in the form the second-moment argument
 consumes: the measures of the `setAq` are not summable. -/
