@@ -360,21 +360,46 @@ own source, and closing it is a contribution to Mathlib independent of this proj
   contribution. Lean: \texttt{addWellApproximable\_ae\_empty\_or\_univ\_of\_nonneg}.
 \end{proof}
 
+\begin{lemma}[The strict form]
+  \label{lem:strict}
+  \lean{DuffinSchaeffer.setA_ae_eq_setAStrict}
+  \leanok
+  \uses{def:seta}
+  $\A(\ps)$ agrees almost everywhere with its strict-inequality analogue, in which (1.7)
+  is required with $<$ rather than $\leq$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} Mathlib's \texttt{addWellApproximable} uses a strict inequality while
+  (1.7) uses $\leq$, so the two have to be reconciled before any transfer can happen.
+
+  If $\alpha$ satisfies infinitely many instances of (1.7) with $\leq$ but only finitely
+  many with $<$, then infinitely many instances hold with \emph{equality}, so $\alpha$ is
+  one of the countably many endpoints $a/q \pm \ps(q)/q$. Hence the difference is
+  contained in a countable set and is null. This is the one step of the transfer where an
+  error would not be visible; the rest is bookkeeping about the quotient map.
+\end{proof}
+
 \begin{lemma}[Transfer to the circle]
   \label{lem:transfer}
   \notready
-  \uses{def:seta, def:distseq}
+  \uses{def:seta, def:distseq, lem:strict}
   For $\ps \leq 1/2$, $\A(\ps)$ agrees up to a null set with the preimage of
   $\mathrm{addWellApproximable}(\R/\Z, \delta_\ps)$ under $\R \to \R/\Z$,
   intersected with $[0,1]$.
 \end{lemma}
 
 \begin{proof}
-  Bookkeeping: the quotient is measure-preserving on $[0,1)$, and
-  \texttt{UnitAddCircle.mem\_addWellApproximable\_iff} already expresses membership in
-  the concrete form $\exists m < n,\ \gcd(m,n) = 1,\ \|x - m/n\| < \delta_n$. The
-  discrepancy between $<$ and $\leq$ costs a null set. Lean:
-  \texttt{setA\_eq\_preimage\_addWellApproximable}.
+  The null set is no longer the open question --- Lemma \ref{lem:strict} disposes of it.
+  What remains is genuinely fiddly rather than deep.
+  \texttt{UnitAddCircle.mem\_addWellApproximable\_iff} expresses membership as
+  $\exists m < n,\ \gcd(m,n) = 1,\ \|x - m/n\| < \delta_n$, so one has to match $m < n$
+  against coprime $a \leq q$ (they agree: $a = q$ forces $q = 1$, and $1/1 \equiv 0/1$ on
+  the circle), and match the quotient norm against $|\cdot|$, which for
+  $\alpha \in [0,1]$ and radius at most $1/(2q)$ means checking that only the
+  representatives $a/q$ and $a/q \pm 1$ can be nearest.
+  Lean: \texttt{setA\_eq\_preimage\_addWellApproximable}.
 \end{proof}
 
 \begin{proposition}[Positive measure suffices]
