@@ -97,25 +97,34 @@ put a point of `[0,1]` within `ψ(q)/q` of `a/q`. -/
 noncomputable def numerators (q : ℕ+) : Finset ℕ :=
   {a ∈ Finset.range ((q : ℕ) + 1) | Nat.Coprime a q}
 
+/-- Under `ψ q ≤ 1/2`, a solution with `α ∈ [0,1]` has numerator at most `q`. This is the
+one place the truncation hypothesis does real work, and both the covering bound and the
+pair-versus-denominator count below rest on it. -/
+theorem le_of_approximates {ψ : ℕ+ → ℝ≥0} {α : ℝ} {a : ℕ} {q : ℕ+}
+    (hψ : (ψ q : ℝ) ≤ 1 / 2) (hα : α ∈ Set.Icc (0 : ℝ) 1) (h : Approximates ψ α a q) :
+    a ≤ (q : ℕ) := by
+  have hq0 : (0 : ℝ) < ((q : ℕ) : ℝ) := by exact_mod_cast q.pos
+  have e1 : (a : ℝ) / ((q : ℕ) : ℝ) * ((q : ℕ) : ℝ) = a := div_mul_cancel₀ _ (ne_of_gt hq0)
+  have e2 : (ψ q : ℝ) / ((q : ℕ) : ℝ) * ((q : ℕ) : ℝ) = (ψ q : ℝ) :=
+    div_mul_cancel₀ _ (ne_of_gt hq0)
+  have h3 := mul_le_mul_of_nonneg_right (abs_le.mp h).1 hq0.le
+  rw [neg_mul, e2, sub_mul, e1] at h3
+  have h4 : α * ((q : ℕ) : ℝ) ≤ 1 * ((q : ℕ) : ℝ) := mul_le_mul_of_nonneg_right hα.2 hq0.le
+  have ha : (a : ℝ) < ((q : ℕ) : ℝ) + 1 := by nlinarith
+  have : a < (q : ℕ) + 1 := by exact_mod_cast ha
+  omega
+
 theorem setAq_subset (ψ : ℕ+ → ℝ≥0) (q : ℕ+) (hψ : (ψ q : ℝ) ≤ 1 / 2) :
     setAq ψ q ⊆ ⋃ a ∈ numerators q, Metric.closedBall ((a : ℝ) / q) ((ψ q : ℝ) / q) := by
-  have hq0 : (0 : ℝ) < (q : ℕ) := by exact_mod_cast q.pos
   intro α hα
   rw [setAq_eq] at hα
   obtain ⟨hα01, hu⟩ := hα
   simp only [Set.mem_iUnion, Metric.mem_closedBall, Real.dist_eq, exists_prop,
     Set.mem_ofPred_eq] at hu
   obtain ⟨a, hcop, hball⟩ := hu
-  have e1 : (a : ℝ) / (q : ℕ) * (q : ℕ) = a := div_mul_cancel₀ _ (ne_of_gt hq0)
-  have e2 : (ψ q : ℝ) / (q : ℕ) * (q : ℕ) = (ψ q : ℝ) := div_mul_cancel₀ _ (ne_of_gt hq0)
-  have h3 := mul_le_mul_of_nonneg_right (abs_le.mp hball).1 hq0.le
-  rw [neg_mul, e2, sub_mul, e1] at h3
-  have h4 : α * (q : ℕ) ≤ 1 * (q : ℕ) := mul_le_mul_of_nonneg_right hα01.2 hq0.le
-  have ha : (a : ℝ) < (q : ℕ) + 1 := by nlinarith
-  have ha' : a < (q : ℕ) + 1 := by exact_mod_cast ha
   simp only [Set.mem_iUnion, numerators, Finset.mem_filter, Finset.mem_range, exists_prop,
     Metric.mem_closedBall, Real.dist_eq]
-  exact ⟨a, ⟨ha', hcop⟩, hball⟩
+  exact ⟨a, ⟨Nat.lt_succ_of_le (le_of_approximates hψ hα01 hball), hcop⟩, hball⟩
 
 /-- For `q ≥ 2` the admissible numerators are exactly the `φ(q)` residues counted by the
 totient: `a = 0` and `a = q` are both excluded by coprimality. -/
@@ -202,17 +211,121 @@ theorem volume_setAq_le (ψ : ℕ+ → ℝ≥0) (q : ℕ+) (hψ : (ψ q : ℝ) �
           congr 1
           field_simp
 
-/-- The bound of `volume_setAq_le` is in fact an equality under the same hypothesis: for
-`ψ q ≤ 1/2` the `φ(q)` intervals are pairwise disjoint and contained in `[0,1]`. Only the
-upper bound is used downstream, so this is left open. -/
-proof_wanted volume_setAq (ψ : ℕ+ → ℝ≥0) (q : ℕ+) (hψ : (ψ q : ℝ) ≤ 1 / 2) :
-    volume (setAq ψ q) = ENNReal.ofReal (2 * (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / ((q : ℕ) : ℝ))
+/-- Closed balls of radius `r` about centres at distance at least `2r` meet in a null set.
+They can genuinely meet -- at `ψ q = 1/2` consecutive intervals share an endpoint -- so
+this is stated as a null intersection rather than as disjointness. -/
+theorem volume_closedBall_inter {x y r : ℝ} (h : 2 * r ≤ |x - y|) :
+    volume (Metric.closedBall x r ∩ Metric.closedBall y r) = 0 := by
+  rw [Real.closedBall_eq_Icc, Real.closedBall_eq_Icc, Set.Icc_inter_Icc, Real.volume_Icc,
+    ENNReal.ofReal_eq_zero]
+  rcases abs_cases (x - y) with ⟨he, -⟩ | ⟨he, -⟩ <;>
+    simp only [min_def, max_def] <;> split_ifs <;> linarith [he]
 
-/-- `setA` is the `limsup` of the `setAq`. The hypothesis `ψ ≤ 1/2` is what confines the
-numerator of a solution to `0 ≤ a ≤ q`, which is why `setA` counts pairs while `setAq`
-counts denominators. -/
-proof_wanted mem_setA_iff (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2) (α : ℝ) :
-    α ∈ setA ψ ↔ α ∈ Set.Icc (0 : ℝ) 1 ∧ {q : ℕ+ | α ∈ setAq ψ q}.Infinite
+/-- For `q ≥ 2` and `ψ q ≤ 1/2` every admissible ball lies inside `[0,1]`, so `setAq` is
+exactly the union of the `φ(q)` balls rather than merely contained in it. -/
+theorem setAq_eq_biUnion {ψ : ℕ+ → ℝ≥0} {q : ℕ+} (hq : 2 ≤ (q : ℕ))
+    (hψ : (ψ q : ℝ) ≤ 1 / 2) :
+    setAq ψ q =
+      ⋃ b ∈ numerators q, Metric.closedBall ((b : ℝ) / ((q : ℕ) : ℝ)) ((ψ q : ℝ) / ((q : ℕ) : ℝ)) := by
+  refine Set.Subset.antisymm (setAq_subset ψ q hψ) ?_
+  have hq0 : (0 : ℝ) < ((q : ℕ) : ℝ) := by exact_mod_cast q.pos
+  intro α hα
+  simp only [Set.mem_iUnion, Metric.mem_closedBall, Real.dist_eq, exists_prop] at hα
+  obtain ⟨b, hb, hball⟩ := hα
+  simp only [numerators, Finset.mem_filter, Finset.mem_range] at hb
+  obtain ⟨hblt, hbcop⟩ := hb
+  -- coprimality forces `1 ≤ b ≤ q - 1`
+  have hb0 : 1 ≤ b := by
+    rcases Nat.eq_zero_or_pos b with h | h
+    · subst h
+      simp only [Nat.Coprime, Nat.gcd_zero_left] at hbcop
+      omega
+    · exact h
+  have hbq : b + 1 ≤ (q : ℕ) := by
+    rcases Nat.lt_or_ge b (q : ℕ) with h | h
+    · omega
+    · exfalso
+      have hbq' : b = (q : ℕ) := by omega
+      rw [hbq'] at hbcop
+      have : (q : ℕ) = 1 := by simpa [Nat.Coprime] using hbcop
+      omega
+  have hbR : (1 : ℝ) ≤ (b : ℝ) := by exact_mod_cast hb0
+  have hbqR : (b : ℝ) + 1 ≤ ((q : ℕ) : ℝ) := by exact_mod_cast hbq
+  have hb' := abs_le.mp hball
+  have eb : (b : ℝ) / ((q : ℕ) : ℝ) * ((q : ℕ) : ℝ) = b := div_mul_cancel₀ _ hq0.ne'
+  have eψ : (ψ q : ℝ) / ((q : ℕ) : ℝ) * ((q : ℕ) : ℝ) = (ψ q : ℝ) := div_mul_cancel₀ _ hq0.ne'
+  have hmul1 := mul_le_mul_of_nonneg_right hb'.1 hq0.le
+  have hmul2 := mul_le_mul_of_nonneg_right hb'.2 hq0.le
+  rw [neg_mul, eψ, sub_mul, eb] at hmul1
+  rw [sub_mul, eb, eψ] at hmul2
+  refine ⟨⟨?_, ?_⟩, b, hbcop, hball⟩
+  · by_contra hneg
+    push Not at hneg
+    nlinarith [mul_neg_of_neg_of_pos hneg hq0]
+  · by_contra hbig
+    push Not at hbig
+    nlinarith [mul_lt_mul_of_pos_right hbig hq0]
+
+theorem volume_setAq_of_two_le {ψ : ℕ+ → ℝ≥0} {q : ℕ+} (hq : 2 ≤ (q : ℕ))
+    (hψ : (ψ q : ℝ) ≤ 1 / 2) :
+    volume (setAq ψ q) = ENNReal.ofReal (2 * (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / ((q : ℕ) : ℝ)) := by
+  have hq0 : (0 : ℝ) < ((q : ℕ) : ℝ) := by exact_mod_cast q.pos
+  rw [setAq_eq_biUnion hq hψ, measure_biUnion_finset₀ ?disj ?meas]
+  case meas => exact fun b _ => measurableSet_closedBall.nullMeasurableSet
+  case disj =>
+    intro b hb c hc hbc
+    refine volume_closedBall_inter ?_
+    have h1 : (1 : ℝ) ≤ |(b : ℝ) - (c : ℝ)| := by
+      rcases Nat.lt_or_ge b c with h | h
+      · have hR : (b : ℝ) + 1 ≤ (c : ℝ) := by exact_mod_cast h
+        rw [abs_of_neg (by linarith)]
+        linarith
+      · have hcb : c < b := by omega
+        have hR : (c : ℝ) + 1 ≤ (b : ℝ) := by exact_mod_cast hcb
+        rw [abs_of_pos (by linarith)]
+        linarith
+    rw [div_sub_div_same, abs_div, abs_of_pos hq0]
+    rw [le_div_iff₀ hq0]
+    calc 2 * ((ψ q : ℝ) / ((q : ℕ) : ℝ)) * ((q : ℕ) : ℝ)
+        = 2 * (ψ q : ℝ) := by field_simp
+      _ ≤ 1 := by linarith
+      _ ≤ |(b : ℝ) - (c : ℝ)| := h1
+  rw [Finset.sum_congr rfl fun b _ => Real.volume_closedBall _ _, Finset.sum_const,
+    card_numerators hq, nsmul_eq_mul, ← ENNReal.ofReal_natCast,
+    ← ENNReal.ofReal_mul (Nat.cast_nonneg _)]
+  congr 1
+  field_simp
+
+/-- `setA` is the `limsup` of the `setAq`: for `ψ ≤ 1/2`, infinitely many solution
+*pairs* is the same as infinitely many *denominators*.
+
+The hypothesis is essential and not cosmetic. It is what bounds the numerator of a
+solution by `q` (`le_of_approximates`), which makes the fibre over each denominator
+finite. Without it a single denominator could carry infinitely many pairs and the two
+sides would differ. -/
+theorem mem_setA_iff (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2) (α : ℝ) :
+    α ∈ setA ψ ↔ α ∈ Set.Icc (0 : ℝ) 1 ∧ {q : ℕ+ | α ∈ setAq ψ q}.Infinite := by
+  constructor
+  · rintro ⟨hα01, hinf⟩
+    refine ⟨hα01, ?_⟩
+    by_contra hfin
+    rw [Set.not_infinite] at hfin
+    refine hinf (Set.Finite.subset (hfin.biUnion (t := fun q : ℕ+ =>
+      (fun a : ℕ => (a, q)) '' Set.Iic (q : ℕ)) fun q _ => (Set.finite_Iic _).image _) ?_)
+    rintro ⟨a, q⟩ ⟨hcop, happ⟩
+    have haq : a ≤ (q : ℕ) := le_of_approximates (hψ q) hα01 happ
+    simp only [Set.mem_iUnion, Set.mem_image, Set.mem_Iic, exists_prop]
+    exact ⟨q, ⟨hα01, a, hcop, happ⟩, a, haq, rfl⟩
+  · rintro ⟨hα01, hinf⟩
+    refine ⟨hα01, ?_⟩
+    have hex : ∀ q ∈ {q : ℕ+ | α ∈ setAq ψ q},
+        ∃ a : ℕ, Nat.Coprime a q ∧ Approximates ψ α a q := fun q hq => hq.2
+    choose! g hg1 hg2 using hex
+    have himg : ((fun q : ℕ+ => (g q, q)) '' {q : ℕ+ | α ∈ setAq ψ q}).Infinite :=
+      hinf.image fun _ _ _ _ h => congrArg Prod.snd h
+    refine himg.mono ?_
+    rintro p ⟨q, hq, rfl⟩
+    exact ⟨hg1 q hq, hg2 q hq⟩
 
 /-- A `limsup` over any countable index is measurable: the set of points lying in
 infinitely many `B i` is `⋂_t ⋃_{i ∉ t} B i`, a countable intersection of countable
@@ -275,11 +388,46 @@ theorem measurableSet_setK (ψ : ℕ+ → ℝ≥0) : MeasurableSet (setK ψ) := 
     {β : ℝ | p.1 ≤ (p.2 : ℕ) ∧ Approximates ψ β p.1 p.2}) fun p => ?_)
   exact measurableSet_approxPair ψ (fun a q => a ≤ (q : ℕ)) p.1 p.2
 
+/-- A non-summable non-negative real series has infinite `ℝ≥0∞` sum. -/
+theorem tsum_ofReal_eq_top {ι : Type*} {g : ι → ℝ} (hg : ∀ i, 0 ≤ g i) (h : ¬ Summable g) :
+    ∑' i, ENNReal.ofReal (g i) = ⊤ := by
+  by_contra hc
+  refine h ?_
+  have hne : ∑' i, ((g i).toNNReal : ℝ≥0∞) ≠ ⊤ := by simpa [ENNReal.ofReal] using hc
+  refine ((ENNReal.tsum_coe_ne_top_iff_summable.mp hne).map NNReal.toRealHom
+    (by continuity)).congr fun i => ?_
+  simp [Real.coe_toNNReal _ (hg i)]
+
 /-- The divergence hypothesis of Theorem 1, in the form the second-moment argument
-consumes: the measures of the `setAq` are not summable. -/
-proof_wanted not_summable_volume_setAq (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2)
+consumes: the measures of the `setAq` are not summable.
+
+The `q = 1` term is handled by absorbing it rather than by computing it: the equality
+`volume_setAq_of_two_le` holds for `q ≥ 2`, and a single finite term cannot rescue a
+divergent series. -/
+theorem not_summable_volume_setAq (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2)
     (hdiv : ¬ Summable fun q : ℕ+ ↦ (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / (q : ℝ)) :
-    ∑' q : ℕ+, volume (setAq ψ q) = ⊤
+    ∑' q : ℕ+, volume (setAq ψ q) = ⊤ := by
+  set F : ℕ+ → ℝ≥0∞ :=
+    fun q => ENNReal.ofReal (2 * (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / ((q : ℕ) : ℝ)) with hFdef
+  have hFtop : ∑' q : ℕ+, F q = ⊤ := by
+    refine tsum_ofReal_eq_top (fun q => by positivity) fun hs => hdiv ?_
+    have := hs.div_const (2 : ℝ)
+    refine this.congr fun q => ?_
+    field_simp
+  by_contra hc
+  refine absurd hFtop ?_
+  have hle : ∀ q : ℕ+, F q ≤ volume (setAq ψ q) + (if q = 1 then F 1 else 0) := by
+    intro q
+    by_cases hq1 : q = 1
+    · subst hq1; simp
+    · have hq2 : 2 ≤ (q : ℕ) := by
+        have h1 : (q : ℕ) ≠ 1 := fun h => hq1 (PNat.coe_eq_one_iff.mp h)
+        have := q.pos
+        omega
+      simp [hq1, volume_setAq_of_two_le hq2 (hψ q), hFdef]
+  refine ne_top_of_le_ne_top ?_ (ENNReal.tsum_le_tsum hle)
+  rw [ENNReal.tsum_add, tsum_ite_eq]
+  exact ENNReal.add_ne_top.mpr ⟨hc, by simp only [hFdef]; exact ENNReal.ofReal_ne_top⟩
 
 /-- Reduction to `ψ ≤ 1/2`. If `ψ q > 1/2` for infinitely many `q` the conclusion of
 Theorem 1 is immediate, since a single such `q` already covers `[0,1]`; so the

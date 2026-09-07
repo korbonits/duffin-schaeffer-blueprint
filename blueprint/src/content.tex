@@ -200,9 +200,13 @@ own source, and closing it is a contribution to Mathlib independent of this proj
   (\texttt{volume\_setAq\_le\_one}). Both problems vanish under $\ps \leq 1/2$, which
   Lemma \ref{lem:truncate} supplies and everything downstream assumes anyway.
 
-  The matching lower bound --- the intervals are pairwise disjoint, so this is an
-  equality --- is stated as \texttt{volume\_setAq} and left open, since only the upper
-  bound is used.
+  The matching lower bound is now also proved, as
+  \texttt{volume\_setAq\_of\_two\_le}: for $q \geq 2$ every ball lies inside $[0,1]$, so
+  the containment above is an equality, and the balls are pairwise \emph{almost}
+  disjoint --- at $\ps(q) = 1/2$ consecutive intervals share an endpoint, so the
+  statement needed is a null intersection (\texttt{volume\_closedBall\_inter}) rather
+  than disjointness, and \texttt{measure\_biUnion\_finset}$_0$ then gives
+  $\Leb(\Aq) = 2\ps(q)\varphi(q)/q$ exactly.
 \end{proof}
 
 \begin{lemma}[Reduction to $\ps \leq 1/2$]
@@ -221,7 +225,8 @@ own source, and closing it is a contribution to Mathlib independent of this proj
 
 \begin{lemma}[$\A$ as a $\limsup$ of the $\Aq$]
   \label{lem:seta-limsup}
-  \notready
+  \lean{DuffinSchaeffer.mem_setA_iff}
+  \leanok
   \uses{def:seta, def:setaq, lem:truncate}
   For $\ps \leq 1/2$, $\alpha \in \A(\ps)$ iff $\alpha \in [0,1]$ and $\alpha$ lies in
   infinitely many $\Aq$.
@@ -256,11 +261,21 @@ own source, and closing it is a contribution to Mathlib independent of this proj
 
 \begin{lemma}[Divergence transfers to the measures]
   \label{lem:divergence}
-  \notready
+  \lean{DuffinSchaeffer.not_summable_volume_setAq}
+  \leanok
   \uses{lem:volume-setaq, lem:truncate}
   If $\sum \ps(q)\varphi(q)/q$ diverges and $\ps \leq 1/2$, then
-  $\sum_q \Leb(\Aq) = \infty$. Lean: \texttt{not\_summable\_volume\_setAq}.
+  $\sum_q \Leb(\Aq) = \infty$.
 \end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} Immediate from the equality in Lemma \ref{lem:volume-setaq} once the
+  $q = 1$ term is dealt with. It is absorbed rather than computed: the equality is
+  available for $q \geq 2$, and a single finite term cannot rescue a divergent series,
+  so bounding $\Leb(\Aq)$ below by the $q \ge 2$ formula plus an indicator at $q = 1$
+  suffices.
+\end{proof}
 
 \chapter{The zero--one law}
 \label{chap:gallagher}
