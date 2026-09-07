@@ -393,16 +393,43 @@ own source, and closing it is a contribution to Mathlib independent of this proj
 \chapter{The second moment method}
 \label{chap:secondmoment}
 
+\begin{lemma}[Cauchy--Schwarz for \texttt{lintegral}]
+  \label{lem:cauchy-schwarz}
+  \lean{DuffinSchaeffer.lintegral_mul_sq_le}
+  \leanok
+  $\left(\int^- fg\right)^2 \leq \int^- f^2 \cdot \int^- g^2$ for
+  $\mathbb{R}_{\geq 0}^{\infty}$-valued $f, g$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} Mathlib has no Cauchy--Schwarz inequality for measure-theoretic
+  integrals --- searching \texttt{MeasureTheory} and \texttt{Probability} for
+  \texttt{cauchy\_schwarz} returns nothing. The nearest available statement is
+  \texttt{ENNReal.lintegral\_mul\_le\_Lp\_mul\_Lq}, H\"older with real exponents, whose
+  $p = q = 2$ case is Cauchy--Schwarz but phrased through \texttt{ENNReal.rpow}. The work
+  is converting that to the squared form an application actually wants. Independently
+  upstreamable.
+\end{proof}
+
 \begin{lemma}[Chung--Erd\H{o}s]
   \label{lem:chung-erdos}
-  \notready
+  \lean{DuffinSchaeffer.chung_erdos}
+  \leanok
+  \uses{lem:cauchy-schwarz}
   For finitely many measurable events,
   $\left(\sum_i \mu(A_i)\right)^2 \leq \mu\!\left(\bigcup_i A_i\right) \sum_{i,j} \mu(A_i \cap A_j)$.
 \end{lemma}
 
 \begin{proof}
-  Cauchy--Schwarz applied to $\mathbf{1}_{\bigcup A_i}$ and $\sum_i \mathbf{1}_{A_i}$.
-  Not in Mathlib; belongs upstream. Lean: \texttt{chung\_erdos}.
+  \leanok
+  \textbf{Proved.} Let $F = \sum_i \mathbf{1}_{A_i}$ be the counting function and
+  $U = \bigcup_i A_i$. Then $\int^- F = \sum_i \mu(A_i)$, and expanding the square of the
+  finite sum gives $\int^- F^2 = \sum_{i,j} \mu(A_i \cap A_j)$. Since $F$ vanishes off
+  $U$ we have $F = \mathbf{1}_U F$ pointwise, and Lemma \ref{lem:cauchy-schwarz} applied
+  to that pair is the claim, using $\mathbf{1}_U^2 = \mathbf{1}_U$.
+
+  No finiteness hypothesis on $\mu$ is needed, so the statement was weakened accordingly.
 \end{proof}
 
 \begin{proposition}[Divergence Borel--Cantelli, quasi-independent form]
