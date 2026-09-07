@@ -1,0 +1,24 @@
+% Printable version of the blueprint. Note this must NOT load the `blueprint`
+% package: that is a plasTeX-side stub which no-ops \graphcolor and friends.
+\documentclass[a4paper]{report}
+
+\usepackage{geometry}
+
+\usepackage{expl3}
+
+\usepackage{amssymb, amsthm, mathtools}
+\usepackage[unicode,colorlinks=true,linkcolor=blue,urlcolor=magenta, citecolor=blue]{hyperref}
+
+\usepackage[warnings-off={mathtools-colon,mathtools-overbracket}]{unicode-math}
+
+\input{macros/common}
+\input{macros/print}
+
+\title{The Duffin--Schaeffer conjecture: a formalization blueprint}
+\author{Alex Korbonits}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\input{content}
+\end{document}

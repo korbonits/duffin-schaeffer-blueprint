@@ -1,0 +1,504 @@
+\chapter{Overview}
+\label{chap:overview}
+
+Let $\ps : \N \to \R_{\geq 0}$. The Duffin--Schaeffer conjecture, posed in 1941 and
+proved by Koukoulopoulos and Maynard in 2019, says that if
+\[ \sum_{q \geq 1} \frac{\ps(q)\varphi(q)}{q} = \infty \]
+then almost every $\alpha \in [0,1]$ admits infinitely many coprime solutions to
+\[ \left| \alpha - \frac{a}{q} \right| \leq \frac{\ps(q)}{q}. \tag{1.7} \]
+
+This blueprint charts a formalization of that theorem, together with the
+non-coprime dichotomy of the paper's Theorem 2. The terminal nodes are transcribed
+verbatim from \texttt{ImperialCollegeLondon/AnnalsChallenge}, where they stand as
+\texttt{sorry}; discharging them here discharges them there.
+
+\section*{Why this target}
+
+Mathlib has already done the first reduction and has left the gap explicitly marked.
+\texttt{Mathlib/NumberTheory/WellApproximable.lean} (Oliver Nash, 2022) proves
+\emph{Gallagher's ergodic theorem}: for any sequence of distances, the
+well-approximable set is null or co-null. Its own module docstring reads:
+
+\begin{quote}
+Given a particular $\delta$, the Duffin--Schaeffer conjecture (now a theorem) gives a
+criterion for deciding which of the two cases in the conclusion of Gallagher's theorem
+actually occurs. \dots\ We do \emph{not} include a formalisation of the
+Koukoulopoulos--Maynard result here.
+\end{quote}
+
+That is the hole this project fills. Because Gallagher gives a zero--one law, it
+suffices to prove that the set has \emph{positive} measure --- and therefore no
+constant anywhere in this blueprint ever has to be computed. That single observation
+governs the shape of every estimate below.
+
+\section*{State of Mathlib, September 2026}
+
+Audited against the pinned revision. Present:
+
+\begin{itemize}
+  \item Gallagher's ergodic theorem, \texttt{AddCircle.addWellApproximable\_ae\_empty\_or\_univ}.
+  \item Both Borel--Cantelli lemmas: \texttt{MeasureTheory.measure\_limsup\_cofinite\_eq\_zero}
+    and \texttt{ProbabilityTheory.measure\_limsup\_eq\_one}. The second assumes genuine
+    independence, which is exactly what fails here.
+  \item Hausdorff measure $\mu H[d]$ and $\dimH$ with a usable API.
+  \item \texttt{Nat.totient} with multiplicativity, \texttt{Nat.primesBelow}, Lebesgue
+    density via Vitali families.
+\end{itemize}
+
+Absent, and needed:
+
+\begin{itemize}
+  \item The Chung--Erd\H{o}s inequality and the quasi-independent divergence
+    Borel--Cantelli lemma. Searching the library for \texttt{chung}, \texttt{paley} or
+    \texttt{second\_moment} returns nothing. Chapter \ref{chap:secondmoment}.
+  \item Mertens' theorems. Searching for \texttt{mertens} returns only an unrelated
+    Dedekind--Mertens TODO in a polynomial file. Chapter \ref{chap:anatomy}.
+  \item The divisor bound and the average order of $\varphi$. Chapter \ref{chap:anatomy}.
+  \item The mass transference principle of Beresnevich--Velani. Chapter
+    \ref{chap:hausdorff}, and deliberately out of scope.
+  \item Everything in Chapter \ref{chap:gcd}.
+\end{itemize}
+
+\section*{Scope}
+
+Theorem 1 and Theorem 2(a),(b) are in scope. Corollary 3 --- the Hausdorff dimension
+--- is not, and Chapter \ref{chap:hausdorff} says why: it needs mass transference,
+which is an independent project of comparable size that would roughly double the work
+while adding nothing to the conjecture itself.
+
+\section*{How to read the status marks}
+
+A node marked \notready\ has no Lean statement yet. Some of those are merely unwritten;
+others are marked \textbf{TRANSCRIBE}, which means something stronger --- the statement
+involves explicit exponents, normalisations or thresholds that must be copied from the
+source rather than reconstructed. A plausible-looking Lean statement with a wrong
+constant is worse than a visible gap, so those nodes carry their section reference and
+nothing else until someone has the paper open.
+
+\section*{Where to start}
+
+Three independent entry points, in increasing order of commitment:
+
+\begin{enumerate}
+  \item Chapter \ref{chap:anatomy}. Mertens and the divisor bound depend on nothing
+    else here and belong in Mathlib on their own merits.
+  \item Chapter \ref{chap:secondmoment}. Chung--Erd\H{o}s is a Cauchy--Schwarz
+    argument; it also belongs upstream.
+  \item Theorem \ref{thm:two-a}, the convergence half of Theorem 2. It is the first
+    Borel--Cantelli lemma applied to a majorant and needs none of Chapter
+    \ref{chap:gcd}. It is the first node in this project whose proof is genuinely
+    about Duffin--Schaeffer.
+\end{enumerate}
+
+Lemma \ref{lem:gallagher-no-tendsto} is a fourth: it is a TODO recorded in Mathlib's
+own source, and closing it is a contribution to Mathlib independent of this project.
+
+\chapter{The approximation sets}
+\label{chap:setup}
+
+\begin{definition}[Inequality (1.7)]
+  \label{def:approximates}
+  \lean{DuffinSchaeffer.Approximates}
+  \leanok
+  For $\ps : \N_{>0} \to \R_{\geq 0}$, $\alpha \in \R$, $a \in \N$ and
+  $q \in \N_{>0}$, write $\mathrm{Approximates}(\ps, \alpha, a, q)$ for
+  $\left| \alpha - a/q \right| \leq \ps(q)/q$.
+\end{definition}
+
+\begin{definition}[The sets $\Aq$]
+  \label{def:setaq}
+  \lean{DuffinSchaeffer.setAq}
+  \leanok
+  \uses{def:approximates}
+  $\Aq = \{ \alpha \in [0,1] : \exists a,\ \gcd(a,q) = 1 \text{ and } (1.7) \text{ holds} \}$.
+\end{definition}
+
+\begin{definition}[$\A(\ps)$ and $\K(\ps)$]
+  \label{def:seta}
+  \lean{DuffinSchaeffer.setA, DuffinSchaeffer.setK}
+  \leanok
+  \uses{def:approximates}
+  $\A(\ps)$ is the set of $\alpha \in [0,1]$ for which (1.7) has infinitely many
+  coprime solutions $(a,q)$; $\K(\ps)$ is the same with coprimality dropped and
+  $0 \leq a \leq q$ imposed.
+\end{definition}
+
+\begin{definition}[The majorant $\pstar$]
+  \label{def:psistar}
+  \lean{DuffinSchaeffer.psiStar}
+  \leanok
+  $\pstar(q) = \varphi(q) \sup \{ \ps(n)/n : q \mid n \}$.
+\end{definition}
+
+\begin{lemma}[Measure of a single $\Aq$]
+  \label{lem:volume-setaq}
+  \notready
+  \uses{def:setaq}
+  $\Leb(\Aq) \leq 2\ps(q)\varphi(q)/q$, with equality when $\ps(q) \leq 1/2$.
+\end{lemma}
+
+\begin{proof}
+  Each of the $\varphi(q)$ admissible numerators contributes an interval of length
+  $2\ps(q)/q$. For $\ps(q) \leq 1/2$ these intervals are pairwise disjoint, since
+  consecutive reduced fractions with denominator $q$ are at distance at least $1/q$.
+  Lean: \texttt{volume\_setAq\_le}, \texttt{volume\_setAq}.
+\end{proof}
+
+\begin{lemma}[Reduction to $\ps \leq 1/2$]
+  \label{lem:truncate}
+  \notready
+  \uses{def:seta}
+  Either $\Leb(\A(\ps)) = 1$ outright, or replacing $\ps$ by $\min(\ps, 1/2)$ changes
+  nothing.
+\end{lemma}
+
+\begin{proof}
+  If $\ps(q) > 1/2$ for infinitely many $q$, a single such $q$ already gives
+  $\Aq = [0,1]$, so $\A(\ps) = [0,1]$. Otherwise the truncation alters only finitely
+  many terms, which cannot affect a $\limsup$. Lean: \texttt{setA\_truncate}.
+\end{proof}
+
+\begin{lemma}[$\A$ as a $\limsup$ of the $\Aq$]
+  \label{lem:seta-limsup}
+  \notready
+  \uses{def:seta, def:setaq, lem:truncate}
+  For $\ps \leq 1/2$, $\alpha \in \A(\ps)$ iff $\alpha \in [0,1]$ and $\alpha$ lies in
+  infinitely many $\Aq$.
+\end{lemma}
+
+\begin{proof}
+  The content is that infinitely many \emph{pairs} $(a,q)$ forces infinitely many
+  \emph{denominators}. Under $\ps \leq 1/2$ a solution has $0 \leq a \leq q$, so each
+  denominator admits only finitely many numerators. Without that hypothesis the
+  implication genuinely fails, which is why Lemma \ref{lem:truncate} comes first.
+  Lean: \texttt{mem\_setA\_iff}.
+\end{proof}
+
+\begin{lemma}[Divergence transfers to the measures]
+  \label{lem:divergence}
+  \notready
+  \uses{lem:volume-setaq, lem:truncate}
+  If $\sum \ps(q)\varphi(q)/q$ diverges and $\ps \leq 1/2$, then
+  $\sum_q \Leb(\Aq) = \infty$. Lean: \texttt{not\_summable\_volume\_setAq}.
+\end{lemma}
+
+\chapter{The zero--one law}
+\label{chap:gallagher}
+
+\begin{theorem}[Gallagher's ergodic theorem]
+  \label{thm:gallagher}
+  \lean{AddCircle.addWellApproximable_ae_empty_or_univ}
+  \leanok
+  \mathlibok
+  For any $\delta : \N \to \R$ tending to $0$, the set
+  $\mathrm{addWellApproximable}(\R/\Z, \delta)$ is either null or co-null.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  In Mathlib, \texttt{Mathlib/NumberTheory/WellApproximable.lean}. Nothing to do.
+\end{proof}
+
+\begin{definition}[The distance sequence]
+  \label{def:distseq}
+  \lean{DuffinSchaeffer.distSeq}
+  \leanok
+  $\delta_\ps(n) = \ps(n)/n$ for $n > 0$, and $0$ at $n = 0$.
+\end{definition}
+
+\begin{lemma}[Dropping the vanishing hypothesis]
+  \label{lem:gallagher-no-tendsto}
+  \notready
+  \uses{thm:gallagher}
+  Gallagher's theorem holds for any non-negative $\delta$, with no assumption that
+  $\delta \to 0$.
+\end{lemma}
+
+\begin{proof}
+  Mathlib's own TODO records the argument: if $\delta \not\to 0$ then
+  $\mathrm{addWellApproximable}(\R/\Z,\delta)$ is all of $\R/\Z$, by an elementary
+  non-measure-theoretic argument. The Duffin--Schaeffer hypothesis does not supply
+  $\delta \to 0$, so this cannot be skipped. It is a self-contained Mathlib
+  contribution. Lean: \texttt{addWellApproximable\_ae\_empty\_or\_univ\_of\_nonneg}.
+\end{proof}
+
+\begin{lemma}[Transfer to the circle]
+  \label{lem:transfer}
+  \notready
+  \uses{def:seta, def:distseq}
+  For $\ps \leq 1/2$, $\A(\ps)$ agrees up to a null set with the preimage of
+  $\mathrm{addWellApproximable}(\R/\Z, \delta_\ps)$ under $\R \to \R/\Z$,
+  intersected with $[0,1]$.
+\end{lemma}
+
+\begin{proof}
+  Bookkeeping: the quotient is measure-preserving on $[0,1)$, and
+  \texttt{UnitAddCircle.mem\_addWellApproximable\_iff} already expresses membership in
+  the concrete form $\exists m < n,\ \gcd(m,n) = 1,\ \|x - m/n\| < \delta_n$. The
+  discrepancy between $<$ and $\leq$ costs a null set. Lean:
+  \texttt{setA\_eq\_preimage\_addWellApproximable}.
+\end{proof}
+
+\begin{proposition}[Positive measure suffices]
+  \label{prop:positive-suffices}
+  \notready
+  \uses{thm:gallagher, lem:gallagher-no-tendsto, lem:transfer}
+  If $\Leb(\A(\ps)) > 0$ then $\Leb(\A(\ps)) = 1$.
+\end{proposition}
+
+\begin{proof}
+  Immediate from Lemmas \ref{lem:transfer} and \ref{lem:gallagher-no-tendsto}. This is
+  the proposition that makes every constant in the rest of the blueprint irrelevant.
+  Lean: \texttt{volume\_setA\_eq\_one\_of\_pos}.
+\end{proof}
+
+\chapter{The second moment method}
+\label{chap:secondmoment}
+
+\begin{lemma}[Chung--Erd\H{o}s]
+  \label{lem:chung-erdos}
+  \notready
+  For finitely many measurable events,
+  $\left(\sum_i \mu(A_i)\right)^2 \leq \mu\!\left(\bigcup_i A_i\right) \sum_{i,j} \mu(A_i \cap A_j)$.
+\end{lemma}
+
+\begin{proof}
+  Cauchy--Schwarz applied to $\mathbf{1}_{\bigcup A_i}$ and $\sum_i \mathbf{1}_{A_i}$.
+  Not in Mathlib; belongs upstream. Lean: \texttt{chung\_erdos}.
+\end{proof}
+
+\begin{proposition}[Divergence Borel--Cantelli, quasi-independent form]
+  \label{prop:quasi-bc}
+  \notready
+  \uses{lem:chung-erdos}
+  Let $(A_i)$ be measurable, and suppose there is a constant $C$ and a sequence of
+  finite index sets $S_n$ with $\sum_{i \in S_n} \mu(A_i) \to \infty$ and
+  \[ \sum_{i,j \in S_n} \mu(A_i \cap A_j) \leq C \left( \sum_{i \in S_n} \mu(A_i) \right)^2 \]
+  for every $n$. Then the set of points lying in infinitely many $A_i$ has measure at
+  least $C^{-1}$.
+\end{proposition}
+
+\begin{proof}
+  Chung--Erd\H{o}s on $S_n$ gives $\mu(\bigcup_{i \in S_n} A_i) \geq C^{-1}$; the tail
+  sets inherit the bound because the hypothesis is stable under discarding an initial
+  segment, and $\mu$ is continuous from above on a finite measure space.
+
+  The quantifier structure matters and is the reason this is stated with a
+  \emph{sequence} of finite sets. Quasi-independence over all finite sets of
+  denominators is false, and its failure is precisely the difficulty of the
+  conjecture. Lean: \texttt{measure\_infinite\_pos\_of\_overlap}.
+\end{proof}
+
+\chapter{Anatomy of integers}
+\label{chap:anatomy}
+
+Nothing in this chapter is due to Koukoulopoulos and Maynard; it is the standard
+toolkit their argument assumes, and Mathlib does not have it. Every node is
+independently upstreamable and none depends on the rest of the project.
+
+\begin{lemma}[Mertens' second theorem]
+  \label{lem:mertens-two}
+  \notready
+  $\sum_{p < n} 1/p = \log\log n + M + O(1/\log n)$.
+  Lean: \texttt{mertens\_second}.
+\end{lemma}
+
+\begin{lemma}[Mertens' third theorem]
+  \label{lem:mertens-three}
+  \notready
+  \uses{lem:mertens-two}
+  $\prod_{p < n} (1 - 1/p)^{-1} \asymp \log n$. The sharp constant $e^{\gamma}$ is
+  never needed. Lean: \texttt{mertens\_third}.
+\end{lemma}
+
+\begin{lemma}[Divisor bound]
+  \label{lem:divisor-bound}
+  \notready
+  $d(n) = O_{\varepsilon}(n^{\varepsilon})$. Lean: \texttt{divisor\_bound}.
+\end{lemma}
+
+\begin{lemma}[Average order of $\varphi$]
+  \label{lem:totient-average}
+  \notready
+  $\sum_{q \leq n} \varphi(q)/q \asymp n$. Lean: \texttt{sum\_totient\_div\_self}.
+\end{lemma}
+
+\chapter{Overlap estimates}
+\label{chap:overlap}
+
+\begin{lemma}[Pollington--Vaughan]
+  \label{lem:pollington-vaughan}
+  \notready
+  \uses{lem:volume-setaq, lem:mertens-three}
+  \textbf{TRANSCRIBE} --- Pollington and Vaughan, \emph{Mathematika} 37 (1990),
+  190--200; quoted in the paper's \S2.
+
+  For $q \neq r$ with $d = \gcd(q,r)$, the overlap $\Leb(\Aq \cap A_r)$ exceeds the
+  independent prediction $\Leb(\Aq)\Leb(A_r)$ by a factor controlled by a product
+  $\prod (1-1/p)^{-1}$ over the primes $p$ dividing $qr/d^2$ that exceed a threshold
+  depending on $q$, $r$ and $\ps$.
+
+  The threshold carries normalisations that must be copied from the source. It is
+  deliberately not stated in Lean until then: with the threshold taken too large the
+  statement is false, with it taken too small the statement is useless, and neither
+  error is visible downstream until the whole chapter has been built on it.
+\end{lemma}
+
+\begin{theorem}[Selection of quasi-independent denominators]
+  \label{thm:overlap-core}
+  \notready
+  \uses{lem:pollington-vaughan, thm:gcd-iteration, lem:divergence}
+  Suppose $\ps \leq 1/2$ and $\sum_q \Leb(\Aq) = \infty$. Then there are a constant
+  $C$ and finite sets $S_n$ of denominators with
+  $\sum_{q \in S_n} \Leb(\Aq) \to \infty$ and
+  \[ \sum_{q,r \in S_n} \Leb(\Aq \cap A_r) \leq C \left( \sum_{q \in S_n} \Leb(\Aq) \right)^2 . \]
+\end{theorem}
+
+\begin{proof}
+  This is the entire content of the paper from \S2 onwards, and the only node in the
+  project with no precedent anywhere. Lemma \ref{lem:pollington-vaughan} converts the
+  overlaps into a question about the small prime factors of $qr/\gcd(q,r)^2$; Theorem
+  \ref{thm:gcd-iteration} answers that question.
+
+  The constant $C$ is never computed: Proposition \ref{prop:quasi-bc} turns it into a
+  positive lower bound $C^{-1}$ on the measure, and Proposition
+  \ref{prop:positive-suffices} then upgrades that to $1$.
+  Lean: \texttt{exists\_quasi\_independent\_subsets}.
+\end{proof}
+
+\chapter{GCD graphs}
+\label{chap:gcd}
+
+The machinery of the paper, \S\S3--10. The overlap of $\Aq$ and $A_r$ is inflated by
+the small primes dividing $qr/\gcd(q,r)^2$, so bounding the double sum means
+controlling how often a set of denominators can be pairwise entangled in that sense.
+Koukoulopoulos and Maynard encode the entanglement as a weighted graph, attach a
+numerical \emph{quality} to it, and show that a graph which is bad for the overlap
+estimate admits a modification strictly increasing its quality. Quality is bounded
+above, so the iteration terminates, and the terminal graphs are exactly those for
+which the estimate holds.
+
+\begin{definition}[GCD graph]
+  \label{def:gcdgraph}
+  \lean{DuffinSchaeffer.GCDGraph}
+  \leanok
+  A finite vertex set $V$ of denominators, a symmetric irreflexive edge set $E$ on it,
+  a finite set $P$ of primes, and for each $p \in P$ exponents $f_p, g_p$ with
+  $g_p \leq f_p$ such that $p^{f_p} \| v$ for every $v \in V$ and
+  $p^{g_p} \| \gcd(v,w)$ for every edge $(v,w)$.
+\end{definition}
+
+\begin{definition}[Quality]
+  \label{def:quality}
+  \notready
+  \uses{def:gcdgraph}
+  \textbf{TRANSCRIBE} --- paper \S3.
+
+  A numerical invariant $\quality(\gcdgraph)$ of a GCD graph, built from the edge
+  density and the exponents $f_p, g_p$. The explicit normalisation must be copied from
+  the paper; the entire argument is an optimisation of this quantity, so a
+  reconstructed formula would be undetectably wrong.
+\end{definition}
+
+\begin{lemma}[Quality is bounded]
+  \label{lem:quality-bounded}
+  \notready
+  \uses{def:quality}
+  \textbf{TRANSCRIBE} --- paper \S3. This is what makes the iteration terminate.
+\end{lemma}
+
+\begin{lemma}[Graph operations]
+  \label{lem:gcd-operations}
+  \notready
+  \uses{def:quality}
+  \textbf{TRANSCRIBE} --- paper \S\S5--9. The catalogue of modifications, each
+  shown to increase quality: passing to an induced subgraph on a large vertex subset,
+  enlarging $P$ and refining $f$ and $g$ along a new prime, and the compression step
+  that removes vertices of unbalanced degree.
+\end{lemma}
+
+\begin{theorem}[The iteration]
+  \label{thm:gcd-iteration}
+  \notready
+  \uses{lem:quality-bounded, lem:gcd-operations, lem:divisor-bound, lem:mertens-two}
+  \textbf{TRANSCRIBE} --- paper \S10. A GCD graph of maximal quality has the structure
+  needed for the overlap estimate; iterating the operations of Lemma
+  \ref{lem:gcd-operations} from an arbitrary graph reaches one.
+\end{theorem}
+
+\chapter{Assembly}
+\label{chap:main}
+
+\begin{theorem}[Duffin--Schaeffer]
+  \label{thm:one}
+  \notready
+  \uses{prop:positive-suffices, prop:quasi-bc, thm:overlap-core, lem:seta-limsup}
+  If $\sum \ps(q)\varphi(q)/q$ diverges then $\A(\ps)$ is measurable and
+  $\Leb(\A(\ps)) = 1$.
+\end{theorem}
+
+\begin{proof}
+  Truncate to $\ps \leq 1/2$ by Lemma \ref{lem:truncate}. Lemma \ref{lem:divergence}
+  gives $\sum \Leb(\Aq) = \infty$; Theorem \ref{thm:overlap-core} supplies the sets
+  $S_n$ and the constant $C$; Proposition \ref{prop:quasi-bc} gives
+  $\Leb(\A(\ps)) \geq C^{-1} > 0$ via Lemma \ref{lem:seta-limsup}; Proposition
+  \ref{prop:positive-suffices} upgrades it to $1$. Lean: \texttt{theorem\_1}.
+\end{proof}
+
+\begin{theorem}[Theorem 2(a), convergence]
+  \label{thm:two-a}
+  \notready
+  \uses{def:psistar, def:seta}
+  If $\sum_q \pstar(q) < \infty$ then $\Leb(\K(\ps)) = 0$.
+\end{theorem}
+
+\begin{proof}
+  The first Borel--Cantelli lemma, which Mathlib has as
+  \texttt{MeasureTheory.measure\_limsup\_cofinite\_eq\_zero}, applied to the cover of
+  $\K(\ps)$ by the sets attached to $\pstar$. This node needs nothing from Chapters
+  \ref{chap:overlap} or \ref{chap:gcd} and is the recommended first real proof in the
+  project. Lean: \texttt{theorem\_2\_a}.
+\end{proof}
+
+\begin{theorem}[Theorem 2(b), divergence]
+  \label{thm:two-b}
+  \notready
+  \uses{thm:one, def:psistar}
+  If $\sum_q \pstar(q) = \infty$ then $\Leb(\K(\ps)) = 1$.
+\end{theorem}
+
+\begin{proof}
+  Reduce to Theorem \ref{thm:one} by applying it to a function manufactured from
+  $\pstar$, chosen so that its coprime approximation set embeds in $\K(\ps)$.
+  Lean: \texttt{theorem\_2\_b}.
+\end{proof}
+
+\chapter{Out of scope: Hausdorff dimension}
+\label{chap:hausdorff}
+
+\begin{definition}[Critical exponent]
+  \label{def:critexp}
+  \lean{DuffinSchaeffer.critExp}
+  \leanok
+  $s = \inf \{ \beta : \sum_q \varphi(q)(\ps(q)/q)^{\beta} < \infty \}$.
+\end{definition}
+
+\begin{corollary}[Corollary 3 of the paper]
+  \label{cor:three}
+  \notready
+  \uses{thm:one, def:critexp}
+  For $\ps$ taking values in $[0,1/2]$, $\dimH \A(\ps) = \min(s,1)$.
+  Lean: \texttt{corollary\_3}.
+\end{corollary}
+
+This does not follow from Theorem \ref{thm:one} by soft arguments. The passage from
+full Lebesgue measure to full Hausdorff dimension runs through the mass transference
+principle of Beresnevich and Velani (\emph{Annals} 164 (2006), 971--992), which
+Mathlib does not have --- searching for \texttt{massTransference} or
+\texttt{beresnevich} returns nothing --- and which brings its own prerequisite stack:
+Hausdorff content, a Cantor-set construction, the ubiquity framework.
+
+That is a separate project of comparable size which happens to share a statement file.
+Folding it into the critical path would roughly double the work and add nothing to the
+conjecture. Mathlib does have $\dimH$ and $\mu H[d]$ with a workable API, so the
+landing site exists whenever someone wants it.

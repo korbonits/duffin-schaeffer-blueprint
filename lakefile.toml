@@ -1,0 +1,14 @@
+name = "duffinschaefferblueprint"
+defaultTargets = ["DuffinSchaeffer"]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "master"
+
+[[lean_lib]]
+name = "DuffinSchaeffer"
+
+[[require]]
+name = "checkdecls"
+git = "https://github.com/PatrickMassot/checkdecls.git"
