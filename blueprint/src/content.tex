@@ -432,26 +432,61 @@ own source, and closing it is a contribution to Mathlib independent of this proj
   No finiteness hypothesis on $\mu$ is needed, so the statement was weakened accordingly.
 \end{proof}
 
-\begin{proposition}[Divergence Borel--Cantelli, quasi-independent form]
-  \label{prop:quasi-bc}
-  \notready
+\begin{proposition}[Second moment, escaping index sets]
+  \label{prop:quasi-bc-escaping}
+  \lean{DuffinSchaeffer.measure_infinite_pos_of_escaping}
+  \leanok
   \uses{lem:chung-erdos}
-  Let $(A_i)$ be measurable, and suppose there is a constant $C$ and a sequence of
-  finite index sets $S_n$ with $\sum_{i \in S_n} \mu(A_i) \to \infty$ and
-  \[ \sum_{i,j \in S_n} \mu(A_i \cap A_j) \leq C \left( \sum_{i \in S_n} \mu(A_i) \right)^2 \]
-  for every $n$. Then the set of points lying in infinitely many $A_i$ has measure at
-  least $C^{-1}$.
+  Let $(A_i)_{i \in \N_{>0}}$ be measurable and suppose there are a constant $C$ and
+  finite sets $S_n$ with pair correlations bounded by $C$ times the square of the first
+  moment, and such that for every $k$ some $S_n$ consists entirely of indices exceeding
+  $k$ and carries positive mass. Then the set of points lying in infinitely many $A_i$
+  has measure at least $C^{-1}$.
 \end{proposition}
 
 \begin{proof}
-  Chung--Erd\H{o}s on $S_n$ gives $\mu(\bigcup_{i \in S_n} A_i) \geq C^{-1}$; the tail
-  sets inherit the bound because the hypothesis is stable under discarding an initial
-  segment, and $\mu$ is continuous from above on a finite measure space.
+  \leanok
+  \textbf{Proved.} Chung--Erd\H{o}s on $S_n$ gives
+  $a^2 \leq \mu(\bigcup_{i \in S_n} A_i)\,C\,a^2$ where $a$ is the first moment; $a$ is
+  nonzero by hypothesis and finite because $\mu$ is a probability measure and the sum is
+  finite, so cancelling gives $1 \leq \mu(\bigcup_{i \in S_n} A_i)\,C$. The escape
+  hypothesis places that union inside the tail $\bigcup_{i > k} A_i$, and continuity from
+  above along the tails --- whose intersection is exactly the set of points lying in
+  infinitely many $A_i$ --- finishes.
 
-  The quantifier structure matters and is the reason this is stated with a
-  \emph{sequence} of finite sets. Quasi-independence over all finite sets of
-  denominators is false, and its failure is precisely the difficulty of the
-  conjecture. Lean: \texttt{measure\_infinite\_pos\_of\_overlap}.
+  This is where the constant $C$ finally becomes a lower bound on a measure, and where
+  the remark of Chapter \ref{chap:overview} is discharged: any positive bound will do,
+  because Proposition \ref{prop:positive-suffices} then upgrades it to $1$.
+\end{proof}
+
+\begin{proposition}[Divergence Borel--Cantelli, quasi-independent form]
+  \label{prop:quasi-bc}
+  \notready
+  \uses{prop:quasi-bc-escaping}
+  As above, but assuming only that the first moments $\sum_{i \in S_n} \mu(A_i)$ tend to
+  infinity, with no escape hypothesis.
+\end{proposition}
+
+\begin{proof}
+  The reduction to Proposition \ref{prop:quasi-bc-escaping} is worth writing down,
+  because the escape hypothesis is not obviously removable.
+
+  Fix a finite $t$ and put $S_n' = S_n \setminus t$. The overlap bound for $S_n'$ is
+  inherited (the double sum only shrinks), and with $x = \sum_{i \in S_n'} \mu(A_i)$ and
+  $k = \#t$ we have $\sum_{i \in S_n} \mu(A_i) \leq x + k$, so Chung--Erd\H{o}s on
+  $S_n'$ gives
+  \[ x^2 \leq M \cdot C \cdot (x+k)^2, \qquad M = \mu\Big(\bigcup_{i \notin t} A_i\Big). \]
+  Since $x \to \infty$ and $k$ is fixed, $(x/(x+k))^2 \to 1$, so $MC \geq 1$, i.e.
+  $C^{-1} \leq M$. Then intersect over $t$ as before.
+
+  The awkwardness is entirely $\mathbb{R}_{\geq 0}^{\infty}$: the ratio manipulation
+  wants division and a limit, and every quantity here is finite, so the sensible move is
+  to pass to $\mathbb{R}_{\geq 0}$ first.
+
+  Alternatively, if Theorem \ref{thm:overlap-core} can be strengthened to produce
+  escaping $S_n$ --- Koukoulopoulos and Maynard select denominators from ranges tending
+  to infinity, so it should --- this node is not needed at all. That has not been checked
+  against the paper.
 \end{proof}
 
 \chapter{Anatomy of integers}

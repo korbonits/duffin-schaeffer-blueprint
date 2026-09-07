@@ -32,7 +32,17 @@ argument consumes. Everything in the paper from §2 to the end goes into proving
 
 The constant `C` is never computed: by `measure_infinite_pos_of_overlap` it yields a
 lower bound `C⁻¹ > 0` on the measure, and Gallagher's zero-one law then upgrades that
-to `1`. -/
+to `1`.
+
+One thing to check against the paper when this node is attempted. The version of the
+second-moment lemma that is *proved*, `measure_infinite_pos_of_escaping`, additionally
+requires the `S n` to escape every initial segment -- each `S n` beyond a point consisting
+of denominators exceeding any fixed `k`. Koukoulopoulos-Maynard select denominators from
+ranges tending to infinity, so their construction should supply this for free, and
+strengthening the conclusion below to include it would let the rest of the chain close
+with what is already proved. It has not been verified against the paper, so it is not
+assumed here; the alternative is to remove the hypothesis from the second-moment lemma,
+whose reduction is written out in `ChungErdos.lean`. -/
 proof_wanted exists_quasi_independent_subsets (ψ : ℕ+ → ℝ≥0)
     (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2)
     (hdiv : ∑' q : ℕ+, volume (setAq ψ q) = ⊤) :

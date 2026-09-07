@@ -19,6 +19,7 @@
    divergent mass on which the pair correlations are bounded. Producing that sequence
    is what Chapters `Overlap` and `GCDGraph` do. -/
 import DuffinSchaeffer.Basic
+import Mathlib.Data.PNat.Interval
 
 open MeasureTheory Set Filter
 open scoped ENNReal BigOperators
@@ -106,19 +107,91 @@ theorem chung_erdos (μ : Measure Ω) {ι : Type*} (s : Finset ι) (A : ι → S
         rw [lintegral_indicator hUmeas]
         simp
 
-/-- **Divergence Borel-Cantelli, quasi-independent form.** Given a sequence of finite
-index sets carrying divergent mass, on each of which the pair correlations are at most
-`C` times the square of the first moment, the set of points lying in infinitely many
-`A i` has measure at least `C⁻¹`.
+/-- **Divergence Borel-Cantelli, quasi-independent form**, for index sets that escape to
+infinity: every `S n` beyond a point consists of indices exceeding any fixed `k`.
 
-This is the only place the constant `C` from the overlap analysis is used, and it is
-why a bound with *some* constant suffices: Gallagher upgrades any positive lower bound
-to `1`, so `C` never has to be computed. -/
-proof_wanted measure_infinite_pos_of_overlap {ι : Type*} (μ : Measure Ω)
-    [IsProbabilityMeasure μ] (A : ι → Set Ω) (hA : ∀ i, MeasurableSet (A i))
-    (C : ℝ≥0∞) (hC : C ≠ 0) (hC' : C ≠ ⊤) (S : ℕ → Finset ι)
+This is the version the second-moment argument actually uses, and it is where the
+constant `C` finally becomes a lower bound on the measure. Chung-Erdős on `S n` gives
+`1 ≤ μ(⋃_{i ∈ S n} A i) · C` after cancelling the (finite, nonzero) first moment; the
+escape hypothesis places that union inside the tail `⋃_{i > k} A i`; and continuity from
+above along the tails gives the conclusion. -/
+theorem measure_infinite_pos_of_escaping (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (A : ℕ+ → Set Ω) (hA : ∀ i, MeasurableSet (A i)) (C : ℝ≥0∞) (hC : C ≠ 0) (hC' : C ≠ ⊤)
+    (S : ℕ → Finset ℕ+)
+    (hesc : ∀ k : ℕ+, ∃ n, (∀ i ∈ S n, k < i) ∧ 0 < ∑ q ∈ S n, μ (A q))
+    (hoverlap : ∀ n, ∑ q ∈ S n, ∑ r ∈ S n, μ (A q ∩ A r) ≤ C * (∑ q ∈ S n, μ (A q)) ^ 2) :
+    C⁻¹ ≤ μ {x | {i : ℕ+ | x ∈ A i}.Infinite} := by
+  set X : ℕ+ → Set Ω := fun k => ⋃ i, ⋃ (_ : k < i), A i with hXdef
+  have hXmeas : ∀ k, MeasurableSet (X k) := fun k =>
+    MeasurableSet.iUnion fun i => MeasurableSet.iUnion fun _ => hA i
+  have hXanti : Antitone X := by
+    intro k l hkl x hx
+    simp only [hXdef, Set.mem_iUnion] at hx ⊢
+    obtain ⟨i, hi, hxi⟩ := hx
+    exact ⟨i, lt_of_le_of_lt hkl hi, hxi⟩
+  have hXint : (⋂ k, X k) = {x | {i : ℕ+ | x ∈ A i}.Infinite} := by
+    ext x
+    simp only [Set.mem_iInter, hXdef, Set.mem_iUnion, Set.mem_ofPred_eq, exists_prop]
+    constructor
+    · exact fun h => Set.infinite_of_forall_exists_gt fun k => by
+        obtain ⟨i, hi, hxi⟩ := h k; exact ⟨i, hxi, hi⟩
+    · intro h k
+      obtain ⟨i, hxi, hi⟩ := h.exists_gt k
+      exact ⟨i, hi, hxi⟩
+  -- every tail carries measure at least `C⁻¹`
+  have hXge : ∀ k, C⁻¹ ≤ μ (X k) := by
+    intro k
+    obtain ⟨n, hSn, hpos⟩ := hesc k
+    set a := ∑ q ∈ S n, μ (A q) with hadef
+    have hane : a ≠ 0 := hpos.ne'
+    have hatop : a ≠ ⊤ := by
+      refine (ENNReal.sum_lt_top.mpr fun q _ => ?_).ne
+      exact measure_lt_top μ _
+    have hsub : (⋃ i ∈ S n, A i) ⊆ X k := by
+      intro x hx
+      simp only [Set.mem_iUnion, exists_prop] at hx
+      obtain ⟨i, hiS, hxi⟩ := hx
+      simp only [hXdef, Set.mem_iUnion]
+      exact ⟨i, hSn i hiS, hxi⟩
+    have hce := chung_erdos μ (S n) A hA
+    have hkey : 1 * a ^ 2 ≤ (μ (X k) * C) * a ^ 2 := by
+      rw [one_mul]
+      calc a ^ 2 ≤ μ (⋃ i ∈ S n, A i) * ∑ q ∈ S n, ∑ r ∈ S n, μ (A q ∩ A r) := hce
+        _ ≤ μ (X k) * (C * a ^ 2) := mul_le_mul' (measure_mono hsub) (hoverlap n)
+        _ = (μ (X k) * C) * a ^ 2 := by ring
+    have h1 : (1 : ℝ≥0∞) ≤ μ (X k) * C :=
+      (ENNReal.mul_le_mul_iff_left (pow_ne_zero 2 hane) (by simpa using hatop)).mp hkey
+    calc C⁻¹ = 1 * C⁻¹ := (one_mul _).symm
+      _ ≤ (μ (X k) * C) * C⁻¹ := by gcongr
+      _ = μ (X k) := by rw [mul_assoc, ENNReal.mul_inv_cancel hC hC', mul_one]
+  rw [← hXint]
+  exact ge_of_tendsto'
+    (tendsto_measure_iInter_atTop (fun k => (hXmeas k).nullMeasurableSet) hXanti
+      ⟨1, measure_ne_top _ _⟩) hXge
+
+/-- **Divergence Borel-Cantelli, quasi-independent form**, without the escape hypothesis.
+
+Still open. It reduces to `measure_infinite_pos_of_escaping` and the reduction is worth
+recording, because the escape hypothesis is not obviously removable and the argument is
+the only delicate point.
+
+Fix a finite `t` and put `S' n = S n \ t`. The overlap bound for `S' n` is inherited from
+`S n` (the double sum only shrinks), and writing `x = ∑_{S' n} μ(A i)` and `k = #t` we
+have `∑_{S n} μ(A i) ≤ x + k`, so Chung-Erdős on `S' n` gives
+
+  `x² ≤ M · C · (x + k)²`,   `M = μ (⋃_{i ∉ t} A i)`.
+
+Since `∑_{S n} μ(A i) → ∞` and `k` is fixed, `x → ∞`, so `(x/(x+k))² → 1` and therefore
+`M · C ≥ 1`, i.e. `C⁻¹ ≤ M`. Then intersect over `t` as in the escaping case.
+
+The awkwardness is entirely `ℝ≥0∞`: the ratio manipulation wants division and a limit,
+both of which are more comfortable after moving to `ℝ≥0`, and every quantity here is
+finite so that move is available. -/
+proof_wanted measure_infinite_pos_of_overlap (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (A : ℕ+ → Set Ω) (hA : ∀ i, MeasurableSet (A i)) (C : ℝ≥0∞) (hC : C ≠ 0) (hC' : C ≠ ⊤)
+    (S : ℕ → Finset ℕ+)
     (hdiv : Tendsto (fun n ↦ ∑ q ∈ S n, μ (A q)) atTop atTop)
     (hoverlap : ∀ n, ∑ q ∈ S n, ∑ r ∈ S n, μ (A q ∩ A r) ≤ C * (∑ q ∈ S n, μ (A q)) ^ 2) :
-    C⁻¹ ≤ μ {x | {i | x ∈ A i}.Infinite}
+    C⁻¹ ≤ μ {x | {i : ℕ+ | x ∈ A i}.Infinite}
 
 end DuffinSchaeffer
