@@ -85,6 +85,43 @@ theorem setA_ae_eq_setAStrict (ψ : ℕ+ → ℝ≥0) : setA ψ =ᵐ[volume] set
   · exact (countable_endpoints ψ).measure_zero _
   · simp [Set.sdiff_eq_empty.mpr (setAStrict_subset ψ)]
 
+/-! ### Denominators for the strict form -/
+
+/-- The strict analogue of `setAq`. -/
+def setAqStrict (ψ : ℕ+ → ℝ≥0) (q : ℕ+) : Set ℝ :=
+  {α ∈ Set.Icc (0 : ℝ) 1 | ∃ a : ℕ, Nat.Coprime a q ∧ ApproximatesStrict ψ α a q}
+
+theorem distSeq_coe (ψ : ℕ+ → ℝ≥0) (q : ℕ+) :
+    distSeq ψ (q : ℕ) = (ψ q : ℝ) / ((q : ℕ) : ℝ) := by
+  have hq : (⟨(q : ℕ), q.pos⟩ : ℕ+) = q := rfl
+  simp [distSeq, q.pos, hq]
+
+/-- The strict analogue of `mem_setA_iff`: infinitely many pairs is infinitely many
+denominators. Same proof, and it rests on the same numerator bound. -/
+theorem mem_setAStrict_iff (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2) (α : ℝ) :
+    α ∈ setAStrict ψ ↔ α ∈ Set.Icc (0 : ℝ) 1 ∧ {q : ℕ+ | α ∈ setAqStrict ψ q}.Infinite := by
+  constructor
+  · rintro ⟨hα01, hinf⟩
+    refine ⟨hα01, ?_⟩
+    by_contra hfin
+    rw [Set.not_infinite] at hfin
+    refine hinf (Set.Finite.subset (hfin.biUnion (t := fun q : ℕ+ =>
+      (fun a : ℕ => (a, q)) '' Set.Iic (q : ℕ)) fun q _ => (Set.finite_Iic _).image _) ?_)
+    rintro ⟨a, q⟩ ⟨hcop, happ⟩
+    have haq : a ≤ (q : ℕ) := le_of_approximates (hψ q) hα01 (le_of_lt happ)
+    simp only [Set.mem_iUnion, Set.mem_image, Set.mem_Iic, exists_prop]
+    exact ⟨q, ⟨hα01, a, hcop, happ⟩, a, haq, rfl⟩
+  · rintro ⟨hα01, hinf⟩
+    refine ⟨hα01, ?_⟩
+    have hex : ∀ q ∈ {q : ℕ+ | α ∈ setAqStrict ψ q},
+        ∃ a : ℕ, Nat.Coprime a q ∧ ApproximatesStrict ψ α a q := fun q hq => hq.2
+    choose! g hg1 hg2 using hex
+    have himg : ((fun q : ℕ+ => (g q, q)) '' {q : ℕ+ | α ∈ setAqStrict ψ q}).Infinite :=
+      hinf.image fun _ _ _ _ h => congrArg Prod.snd h
+    refine himg.mono ?_
+    rintro p ⟨q, hq, rfl⟩
+    exact ⟨hg1 q hq, hg2 q hq⟩
+
 /-! ### The circle norm against the absolute value
 
 Mathlib states well-approximability with the quotient norm on `ℝ/ℤ`; (1.7) uses `|·|` on
@@ -161,32 +198,192 @@ theorem norm_lt_iff_abs_lt {α : ℝ} (hα : α ∈ Set.Icc (0 : ℝ) 1) {m n : 
       exfalso
       linarith
 
+/-- At each denominator, the strict real condition matches Mathlib's circle condition.
+
+Three separate mismatches are reconciled here: the numerator range (`m < q` against
+coprime `a` with no bound), the norm (Lemma `norm_lt_iff_abs_lt`), and `q = 1`, where
+Mathlib's only admissible numerator is `m = 0` while the real condition also allows
+`a = 1`. They agree because `0/1` and `1/1` are the same point of the circle. -/
+theorem mem_setAqStrict_iff_circle (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2) {α : ℝ}
+    (hα : α ∈ Set.Icc (0 : ℝ) 1) (q : ℕ+) :
+    α ∈ setAqStrict ψ q ↔
+      ∃ m < (q : ℕ), gcd m (q : ℕ) = 1 ∧
+        ‖(α : UnitAddCircle) - (((m : ℝ) / ((q : ℕ) : ℝ) : ℝ) : UnitAddCircle)‖
+          < distSeq ψ (q : ℕ) := by
+  have hq0 : (0 : ℝ) < ((q : ℕ) : ℝ) := by exact_mod_cast q.pos
+  have hδ : (ψ q : ℝ) / ((q : ℕ) : ℝ) ≤ 1 / (2 * ((q : ℕ) : ℝ)) := by
+    rw [div_le_div_iff₀ hq0 (by positivity)]
+    nlinarith [hψ q, hq0]
+  simp only [distSeq_coe, ← AddCircle.coe_sub]
+  by_cases hq1 : q = 1
+  · -- `q = 1`: Mathlib allows only `m = 0`, the real condition also `a = 1`; same point.
+    subst hq1
+    have hψ1 : (ψ 1 : ℝ) ≤ 1 / 2 := hψ 1
+    simp only [PNat.one_coe, Nat.cast_one, div_one]
+    constructor
+    · rintro ⟨-, a, -, happ⟩
+      simp only [ApproximatesStrict, PNat.one_coe, Nat.cast_one, div_one] at happ
+      have hab := abs_lt.mp happ
+      have ha2 : (a : ℝ) < 2 := by linarith [hα.1, hα.2]
+      have ha2' : a < 2 := by exact_mod_cast ha2
+      refine ⟨0, by norm_num, by norm_num, ?_⟩
+      simp only [Nat.cast_zero, sub_zero]
+      interval_cases a
+      · push_cast at hab happ
+        rw [norm_coe_eq_abs (by rw [abs_of_nonneg hα.1]; linarith)]
+        simpa using happ
+      · push_cast at hab
+        rw [norm_coe_of_gt (by linarith) hα.2]
+        linarith
+    · rintro ⟨m, hm, -, hnorm⟩
+      have hm0 : m = 0 := by omega
+      subst hm0
+      simp only [Nat.cast_zero, sub_zero] at hnorm
+      refine ⟨hα, ?_⟩
+      by_cases hhalf : α ≤ 1 / 2
+      · refine ⟨0, by simp, ?_⟩
+        rw [norm_coe_eq_abs (by rw [abs_of_nonneg hα.1]; linarith)] at hnorm
+        simpa [ApproximatesStrict] using hnorm
+      · push Not at hhalf
+        refine ⟨1, by simp, ?_⟩
+        rw [norm_coe_of_gt hhalf hα.2] at hnorm
+        simp only [ApproximatesStrict, PNat.one_coe, Nat.cast_one, div_one]
+        rw [abs_of_nonpos (by linarith [hα.2])]
+        linarith
+  · -- `q ≥ 2`: coprimality confines the numerator to `1 ≤ a ≤ q - 1`.
+    have hq2 : 2 ≤ (q : ℕ) := by
+      have h1 : (q : ℕ) ≠ 1 := fun h => hq1 (PNat.coe_eq_one_iff.mp h)
+      have := q.pos
+      omega
+    constructor
+    · rintro ⟨-, a, hcop, happ⟩
+      have haq : a ≤ (q : ℕ) := le_of_approximates (hψ q) hα (le_of_lt happ)
+      have ha0 : 1 ≤ a := by
+        rcases Nat.eq_zero_or_pos a with rfl | h
+        · exact absurd (by simpa [Nat.Coprime] using hcop) (by omega)
+        · exact h
+      have haq' : a + 1 ≤ (q : ℕ) := by
+        rcases Nat.lt_or_ge a (q : ℕ) with h | h
+        · omega
+        · exact absurd (by simpa [Nat.Coprime, show a = (q : ℕ) by omega] using hcop) (by omega)
+      exact ⟨a, by omega, hcop, (norm_lt_iff_abs_lt hα hq2 ha0 haq' hδ).mpr happ⟩
+    · rintro ⟨m, hm, hcop, hnorm⟩
+      have hm0 : 1 ≤ m := by
+        rcases Nat.eq_zero_or_pos m with rfl | h
+        · exact absurd (by simpa using hcop) (by omega)
+        · exact h
+      exact ⟨hα, m, hcop, (norm_lt_iff_abs_lt hα hq2 hm0 (by omega) hδ).mp hnorm⟩
+
+/-- The strict form is *exactly* the preimage: no null sets involved once
+`mem_setAqStrict_iff_circle` has matched the two conditions denominator by denominator. -/
+theorem setAStrict_eq_preimage (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2) :
+    setAStrict ψ = Set.Icc (0 : ℝ) 1 ∩
+      (fun x : ℝ ↦ (x : UnitAddCircle)) ⁻¹' addWellApproximable UnitAddCircle (distSeq ψ) := by
+  ext α
+  simp only [Set.mem_inter_iff, Set.mem_preimage, UnitAddCircle.mem_addWellApproximable_iff]
+  rw [mem_setAStrict_iff ψ hψ]
+  refine and_congr_right fun hα => ?_
+  have hset : {n : ℕ | ∃ m < n, gcd m n = 1 ∧
+      ‖(α : UnitAddCircle) - (((m : ℝ) / (n : ℝ) : ℝ) : UnitAddCircle)‖ < distSeq ψ n}
+      = (fun q : ℕ+ => (q : ℕ)) '' {q : ℕ+ | α ∈ setAqStrict ψ q} := by
+    ext n
+    constructor
+    · rintro ⟨m, hmn, hcop, hnorm⟩
+      have hn : 0 < n := lt_of_le_of_lt (Nat.zero_le m) hmn
+      exact ⟨⟨n, hn⟩, (mem_setAqStrict_iff_circle ψ hψ hα ⟨n, hn⟩).mpr
+        ⟨m, hmn, hcop, hnorm⟩, rfl⟩
+    · rintro ⟨q, hq, rfl⟩
+      exact (mem_setAqStrict_iff_circle ψ hψ hα q).mp hq
+  rw [hset]
+  exact (Set.infinite_image_iff fun _ _ _ _ h => PNat.coe_injective h).symm
+
 /-- Transfer: `setA ψ` is, modulo a null set, the preimage of Mathlib's well-approximable
 set under `ℝ → ℝ/ℤ`.
 
-The null set is no longer the open question: `setA_ae_eq_setAStrict` disposes of the
-`≤` versus `<` mismatch, which was the one step here where an error could hide. What
-remains is bookkeeping about the quotient, and it is genuinely fiddly rather than deep:
-`UnitAddCircle.mem_addWellApproximable_iff` describes membership as
-`∃ m < n, gcd m n = 1 ∧ ‖x - m/n‖ < δ n`, so one has to match `m < n` against coprime
-`a ≤ q` (they agree: `a = q` forces `q = 1`, and `1/1 ≡ 0/1` on the circle), and match
-the quotient norm `‖·‖` against `|·|`, which for `α ∈ [0,1]` and radius at most `1/(2q)`
-means checking that only the representatives `a/q` and `a/q ± 1` can be nearest. -/
-proof_wanted setA_eq_preimage_addWellApproximable (ψ : ℕ+ → ℝ≥0)
+The null set is `setA_ae_eq_setAStrict`'s countable set of endpoints; everything else is
+an exact equality. -/
+theorem setA_eq_preimage_addWellApproximable (ψ : ℕ+ → ℝ≥0)
     (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2) :
     setA ψ =ᵐ[volume]
       (Set.Icc (0 : ℝ) 1 ∩
-        (fun x : ℝ ↦ (x : UnitAddCircle)) ⁻¹' addWellApproximable UnitAddCircle (distSeq ψ))
+        (fun x : ℝ ↦ (x : UnitAddCircle)) ⁻¹' addWellApproximable UnitAddCircle (distSeq ψ)) := by
+  rw [← setAStrict_eq_preimage ψ hψ]
+  exact setA_ae_eq_setAStrict ψ
 
 /-- Gallagher's theorem without the vanishing hypothesis. Mathlib's TODO. -/
 proof_wanted addWellApproximable_ae_empty_or_univ_of_nonneg (δ : ℕ → ℝ) (hδ : ∀ n, 0 ≤ δ n) :
     (∀ᵐ x : UnitAddCircle, ¬ addWellApproximable UnitAddCircle δ x) ∨
       ∀ᵐ x : UnitAddCircle, addWellApproximable UnitAddCircle δ x
 
+theorem measurableSet_addWellApproximable (δ : ℕ → ℝ) :
+    MeasurableSet (addWellApproximable UnitAddCircle δ) := by
+  unfold addWellApproximable
+  rw [Filter.blimsup_eq_iInf_biSup_of_nat]
+  exact MeasurableSet.iInter fun n => MeasurableSet.biUnion (Set.to_countable _)
+    fun i _ => Metric.isOpen_thickening.measurableSet
+
+/-- Under the truncation the distances tend to zero, so Mathlib's Gallagher applies as
+stated and the mathlib TODO `addWellApproximable_ae_empty_or_univ_of_nonneg` is not
+needed on this path. -/
+theorem tendsto_distSeq (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2) :
+    Tendsto (distSeq ψ) atTop (nhds 0) := by
+  refine squeeze_zero (fun n => ?_) (fun n => ?_) tendsto_one_div_atTop_nhds_zero_nat
+  · rcases Nat.eq_zero_or_pos n with rfl | hn
+    · simp [distSeq]
+    · have hd : distSeq ψ n = (ψ ⟨n, hn⟩ : ℝ) / n := by simp [distSeq, hn]
+      rw [hd]; positivity
+  · rcases Nat.eq_zero_or_pos n with rfl | hn
+    · simp [distSeq]
+    · have hd : distSeq ψ n = (ψ ⟨n, hn⟩ : ℝ) / n := by simp [distSeq, hn]
+      have hn0 : (0 : ℝ) < n := by exact_mod_cast hn
+      rw [hd, div_le_div_iff_of_pos_right hn0]
+      linarith [hψ ⟨n, hn⟩]
+
 /-- The reduction the rest of the project rests on: it suffices to prove that `setA ψ`
 has *positive* measure. Everything after this chapter is devoted to that. -/
-proof_wanted volume_setA_eq_one_of_pos (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2)
+theorem volume_setA_eq_one_of_pos (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : ℝ) ≤ 1 / 2)
     (hpos : 0 < volume (setA ψ)) :
-    volume (setA ψ) = 1
+    volume (setA ψ) = 1 := by
+  set W := addWellApproximable UnitAddCircle (distSeq ψ) with hWdef
+  have hWmeas : MeasurableSet W := measurableSet_addWellApproximable _
+  set P : Set ℝ := Set.Icc (0 : ℝ) 1 ∩ (fun x : ℝ => (x : UnitAddCircle)) ⁻¹' W with hPdef
+  have hae : volume (setA ψ) = volume P :=
+    measure_congr (setA_eq_preimage_addWellApproximable ψ hψ)
+  have hproj : volume W = volume ((QuotientAddGroup.mk ⁻¹' W) ∩ Set.Ioc (0 : ℝ) 1) := by
+    have h := AddCircle.add_projection_respects_measure (1 : ℝ) 0 hWmeas
+    simpa using h
+  rcases AddCircle.addWellApproximable_ae_empty_or_univ (T := (1 : ℝ)) (distSeq ψ)
+    (tendsto_distSeq ψ hψ) with h | h
+  · exfalso
+    have hW0 : volume W = 0 := by rw [MeasureTheory.ae_iff] at h; simpa using h
+    have hPnull : volume P = 0 := by
+      refine measure_mono_null
+        (?_ : P ⊆ {(0 : ℝ)} ∪ ((QuotientAddGroup.mk ⁻¹' W) ∩ Set.Ioc (0 : ℝ) 1)) ?_
+      · rintro x ⟨hx01, hxW⟩
+        rcases eq_or_lt_of_le hx01.1 with heq | hlt
+        · exact Or.inl heq.symm
+        · exact Or.inr ⟨hxW, hlt, hx01.2⟩
+      · exact measure_union_null (by simp) (by rw [← hproj, hW0])
+    rw [hae, hPnull] at hpos
+    exact lt_irrefl 0 hpos
+  · have hWuniv : volume W = 1 := by
+      have hc : volume Wᶜ = 0 := by rw [MeasureTheory.ae_iff] at h; exact h
+      have hsum := measure_add_measure_compl (μ := (volume : Measure UnitAddCircle)) hWmeas
+      rw [hc, add_zero] at hsum
+      rw [hsum, AddCircle.measure_univ]
+      simp
+    have hge : (1 : ℝ≥0∞) ≤ volume P := by
+      calc (1 : ℝ≥0∞) = volume W := hWuniv.symm
+        _ = volume ((QuotientAddGroup.mk ⁻¹' W) ∩ Set.Ioc (0 : ℝ) 1) := hproj
+        _ ≤ volume P := measure_mono (by
+            rintro x ⟨hxW, hx⟩
+            exact ⟨⟨le_of_lt hx.1, hx.2⟩, hxW⟩)
+    have hle : volume P ≤ 1 := by
+      calc volume P ≤ volume (Set.Icc (0 : ℝ) 1) := measure_mono Set.inter_subset_left
+        _ = 1 := by simp
+    rw [hae]
+    exact le_antisymm hle hge
 
 end DuffinSchaeffer
+
+

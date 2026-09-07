@@ -348,6 +348,9 @@ own source, and closing it is a contribution to Mathlib independent of this proj
   \label{lem:gallagher-no-tendsto}
   \notready
   \uses{thm:gallagher}
+  \emph{Not needed on the critical path} --- see Proposition
+  \ref{prop:positive-suffices}. It is required only by Lemma \ref{lem:truncate} at
+  general $\ps$.
   Gallagher's theorem holds for any non-negative $\delta$, with no assumption that
   $\delta \to 0$.
 \end{lemma}
@@ -408,7 +411,8 @@ own source, and closing it is a contribution to Mathlib independent of this proj
 
 \begin{lemma}[Transfer to the circle]
   \label{lem:transfer}
-  \notready
+  \lean{DuffinSchaeffer.setA_eq_preimage_addWellApproximable}
+  \leanok
   \uses{def:seta, def:distseq, lem:strict, lem:circle-norm}
   For $\ps \leq 1/2$, $\A(\ps)$ agrees up to a null set with the preimage of
   $\mathrm{addWellApproximable}(\R/\Z, \delta_\ps)$ under $\R \to \R/\Z$,
@@ -416,28 +420,41 @@ own source, and closing it is a contribution to Mathlib independent of this proj
 \end{lemma}
 
 \begin{proof}
-  The null set is no longer the open question --- Lemma \ref{lem:strict} disposes of it.
-  What remains is genuinely fiddly rather than deep.
-  \texttt{UnitAddCircle.mem\_addWellApproximable\_iff} expresses membership as
-  $\exists m < n,\ \gcd(m,n) = 1,\ \|x - m/n\| < \delta_n$, so one has to match $m < n$
-  against coprime $a \leq q$ (they agree: $a = q$ forces $q = 1$, and $1/1 \equiv 0/1$ on
-  the circle), and match the quotient norm against $|\cdot|$, which for
-  $\alpha \in [0,1]$ and radius at most $1/(2q)$ means checking that only the
-  representatives $a/q$ and $a/q \pm 1$ can be nearest.
-  Lean: \texttt{setA\_eq\_preimage\_addWellApproximable}.
+  \leanok
+  \textbf{Proved.} In fact the \emph{strict} form is exactly the preimage --- no null
+  sets at all (\texttt{setAStrict\_eq\_preimage}) --- and Lemma \ref{lem:strict} then
+  supplies the only null set in sight.
+
+  Three mismatches had to be reconciled, denominator by denominator
+  (\texttt{mem\_setAqStrict\_iff\_circle}). The numerator range: Mathlib asks for
+  $m < n$ while (1.7) bounds nothing, but coprimality plus $\ps \le 1/2$ confine $a$ to
+  $[1, q-1]$ for $q \geq 2$. The norm: Lemma \ref{lem:circle-norm}. And $q = 1$, where
+  Mathlib's only admissible numerator is $m = 0$ while the real condition also allows
+  $a = 1$ --- they agree because $0/1$ and $1/1$ are the same point of the circle. The
+  index sets then match by $\N_{>0} \hookrightarrow \N$, whose image misses only $n = 0$,
+  where the condition $\exists m < 0$ is vacuous.
 \end{proof}
 
 \begin{proposition}[Positive measure suffices]
   \label{prop:positive-suffices}
-  \notready
-  \uses{thm:gallagher, lem:gallagher-no-tendsto, lem:transfer}
+  \lean{DuffinSchaeffer.volume_setA_eq_one_of_pos}
+  \leanok
+  \uses{thm:gallagher, lem:transfer}
   If $\Leb(\A(\ps)) > 0$ then $\Leb(\A(\ps)) = 1$.
 \end{proposition}
 
 \begin{proof}
-  Immediate from Lemmas \ref{lem:transfer} and \ref{lem:gallagher-no-tendsto}. This is
-  the proposition that makes every constant in the rest of the blueprint irrelevant.
-  Lean: \texttt{volume\_setA\_eq\_one\_of\_pos}.
+  \leanok
+  \textbf{Proved.} Under $\ps \leq 1/2$ the distances satisfy $\delta_\ps(n) \leq 1/(2n)$
+  and so tend to $0$, which means Mathlib's Gallagher applies \emph{as stated}: Lemma
+  \ref{lem:gallagher-no-tendsto} is not needed on this path at all. Given the dichotomy,
+  transport it across Lemma \ref{lem:transfer} using
+  \texttt{AddCircle.add\_projection\_respects\_measure}, which computes the circle measure
+  of a set as the Lebesgue measure of its preimage in $(0,1]$; the difference between
+  $[0,1]$ and $(0,1]$ is a single point.
+
+  This is the proposition that makes every constant in the rest of the blueprint
+  irrelevant.
 \end{proof}
 
 \chapter{The second moment method}
