@@ -179,7 +179,7 @@ own source, and closing it is a contribution to Mathlib independent of this proj
   \label{lem:volume-setaq}
   \lean{DuffinSchaeffer.volume_setAq_le}
   \leanok
-  \uses{lem:setaq-union, lem:truncate}
+  \uses{lem:setaq-union}
   If $\ps(q) \leq 1/2$ then $\Leb(\Aq) \leq 2\ps(q)\varphi(q)/q$.
 \end{lemma}
 
@@ -209,25 +209,68 @@ own source, and closing it is a contribution to Mathlib independent of this proj
   $\Leb(\Aq) = 2\ps(q)\varphi(q)/q$ exactly.
 \end{proof}
 
-\begin{lemma}[Reduction to $\ps \leq 1/2$]
-  \label{lem:truncate}
-  \notready
-  \uses{def:seta}
-  Either $\Leb(\A(\ps)) = 1$ outright, or replacing $\ps$ by $\min(\ps, 1/2)$ changes
-  nothing.
+\begin{lemma}[The numerator bound]
+  \label{lem:le-of-approximates}
+  \lean{DuffinSchaeffer.le_of_approximates}
+  \leanok
+  \uses{def:approximates}
+  If $\ps(q) \leq 1/2$ and $\alpha \in [0,1]$ satisfies (1.7), then $a \leq q$.
 \end{lemma}
 
 \begin{proof}
-  If $\ps(q) > 1/2$ for infinitely many $q$, a single such $q$ already gives
-  $\Aq = [0,1]$, so $\A(\ps) = [0,1]$. Otherwise the truncation alters only finitely
-  many terms, which cannot affect a $\limsup$. Lean: \texttt{setA\_truncate}.
+  \leanok
+  \textbf{Proved.} $a/q \leq \alpha + \ps(q)/q \leq 1 + 1/(2q)$, so $a \leq q + 1/2$.
+  This is the single place the truncation hypothesis does real work; both the covering
+  bound and the pair-versus-denominator count rest on it.
+\end{proof}
+
+\begin{lemma}[Monotonicity in $\ps$]
+  \label{lem:seta-mono}
+  \lean{DuffinSchaeffer.setA_mono}
+  \leanok
+  \uses{def:seta}
+  If $\ps \leq \ps'$ pointwise then $\A(\ps) \subseteq \A(\ps')$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} Enlarging the tolerance can only add solutions.
+\end{proof}
+
+\begin{lemma}[Reduction to $\ps \leq 1/2$]
+  \label{lem:truncate}
+  \lean{DuffinSchaeffer.setA_truncate}
+  \leanok
+  \uses{lem:seta-mono, thm:gallagher}
+  Assume $\Leb(\A(\ps)) \in \{0,1\}$. Then either $\Leb(\A(\ps)) = 1$, or replacing
+  $\ps$ by $\min(\ps, 1/2)$ leaves the measure unchanged.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved}, but note what it is proved from.
+
+  \emph{This is not a Chapter 2 result, and presenting it as one was a mistake in the
+  first draft of this blueprint.} Either disjunct needs to know that $\A(\ps)$ cannot
+  have intermediate measure --- which is Gallagher's zero-one law, a Chapter
+  \ref{chap:gallagher} input. So the zero-one law appears here as an explicit
+  hypothesis rather than being smuggled in. There is no circularity: every statement in
+  Chapter \ref{chap:gallagher} carries the hypothesis $\ps \leq 1/2$ and none of them
+  uses this lemma.
+
+  The tempting elementary route fails. One would like to argue that if $\ps(q) > 1/2$
+  for infinitely many $q$ then $\A(\ps)$ is full outright, but that is false: at $q = 6$
+  only $b = 1, 5$ are coprime to $6$, so the balls of radius $\ps(6)/6$ around $1/6$ and
+  $5/6$ cover $[0,1]$ only once $\ps(6) \geq 2$. Given the zero-one law the proof is two
+  lines --- if the measure is $0$ then monotonicity (Lemma \ref{lem:seta-mono}) forces
+  the truncation to be null as well --- but nothing weaker closes the gap.
 \end{proof}
 
 \begin{lemma}[$\A$ as a $\limsup$ of the $\Aq$]
   \label{lem:seta-limsup}
   \lean{DuffinSchaeffer.mem_setA_iff}
   \leanok
-  \uses{def:seta, def:setaq, lem:truncate}
+  \uses{def:seta, def:setaq, lem:le-of-approximates}
   For $\ps \leq 1/2$, $\alpha \in \A(\ps)$ iff $\alpha \in [0,1]$ and $\alpha$ lies in
   infinitely many $\Aq$.
 \end{lemma}
@@ -263,7 +306,7 @@ own source, and closing it is a contribution to Mathlib independent of this proj
   \label{lem:divergence}
   \lean{DuffinSchaeffer.not_summable_volume_setAq}
   \leanok
-  \uses{lem:volume-setaq, lem:truncate}
+  \uses{lem:volume-setaq}
   If $\sum \ps(q)\varphi(q)/q$ diverges and $\ps \leq 1/2$, then
   $\sum_q \Leb(\Aq) = \infty$.
 \end{lemma}

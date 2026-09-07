@@ -429,10 +429,37 @@ theorem not_summable_volume_setAq (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : 
   rw [ENNReal.tsum_add, tsum_ite_eq]
   exact ENNReal.add_ne_top.mpr ⟨hc, by simp only [hFdef]; exact ENNReal.ofReal_ne_top⟩
 
-/-- Reduction to `ψ ≤ 1/2`. If `ψ q > 1/2` for infinitely many `q` the conclusion of
-Theorem 1 is immediate, since a single such `q` already covers `[0,1]`; so the
-truncation `min ψ (1/2)` loses nothing. -/
-proof_wanted setA_truncate (ψ : ℕ+ → ℝ≥0) :
-    volume (setA ψ) = 1 ∨ volume (setA fun q ↦ min (ψ q) (1 / 2)) = volume (setA ψ)
+/-- `setA` is monotone in `ψ`: enlarging the tolerance can only add solutions. -/
+theorem setA_mono {ψ ψ' : ℕ+ → ℝ≥0} (h : ∀ q, ψ q ≤ ψ' q) : setA ψ ⊆ setA ψ' := by
+  rintro α ⟨hα01, hinf⟩
+  refine ⟨hα01, hinf.mono ?_⟩
+  rintro ⟨a, q⟩ ⟨hcop, happ⟩
+  refine ⟨hcop, le_trans happ ?_⟩
+  have hq0 : (0 : ℝ) ≤ ((q : ℕ) : ℝ) := by positivity
+  have hψ : (ψ q : ℝ) ≤ (ψ' q : ℝ) := by exact_mod_cast h q
+  gcongr
+
+/-- Reduction to `ψ ≤ 1/2`.
+
+**This is not a Chapter 2 result**, and stating it as one was a mistake in the first
+draft of this development. Either disjunct requires knowing that `setA ψ` cannot have
+intermediate measure, and that is exactly Gallagher's zero-one law -- a Chapter 3 input.
+It is not circular: every Chapter 3 statement carries the hypothesis `ψ ≤ 1/2` and none
+of them uses this lemma. But the dependency is real, so the zero-one law is taken here
+as an explicit hypothesis rather than hidden.
+
+The tempting elementary route does not work. One would like to say that if `ψ(q) > 1/2`
+for infinitely many `q` then `setA ψ` is full outright, but that is false: at `q = 6`
+only `b = 1, 5` are coprime to `6`, so the balls around `1/6` and `5/6` of radius
+`ψ(6)/6` do not cover `[0,1]` unless `ψ(6) ≥ 2`. Nothing weaker than the zero-one law
+closes the gap. -/
+theorem setA_truncate (ψ : ℕ+ → ℝ≥0)
+    (hzo : volume (setA ψ) = 0 ∨ volume (setA ψ) = 1) :
+    volume (setA ψ) = 1 ∨ volume (setA fun q ↦ min (ψ q) (1 / 2)) = volume (setA ψ) := by
+  rcases hzo with h | h
+  · refine Or.inr ?_
+    rw [h]
+    exact le_antisymm (h ▸ measure_mono (setA_mono fun q => min_le_left _ _)) (by simp)
+  · exact Or.inl h
 
 end DuffinSchaeffer
