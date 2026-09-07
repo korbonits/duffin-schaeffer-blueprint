@@ -317,11 +317,46 @@ independently upstreamable and none depends on the rest of the project.
   $d(n) = O_{\varepsilon}(n^{\varepsilon})$. Lean: \texttt{divisor\_bound}.
 \end{lemma}
 
+\begin{lemma}[Dirichlet swap]
+  \label{lem:dirichlet-swap}
+  \lean{DuffinSchaeffer.sum_sum_divisors}
+  \leanok
+  For any $f$, $\sum_{q \leq n} \sum_{d \mid q} f(d) = \sum_{d \leq n} \lfloor n/d \rfloor f(d)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} The divisors of $q$ are exactly the $d \leq n$ dividing $q$ once
+  $0 < q \leq n$ (\texttt{divisors\_eq\_filter}), so both sides count the same pairs;
+  exchanging the order of summation and counting multiples with
+  \texttt{Nat.Ioc\_filter\_dvd\_card\_eq\_div} gives the result.
+\end{proof}
+
 \begin{lemma}[Average order of $\varphi$]
   \label{lem:totient-average}
-  \notready
-  $\sum_{q \leq n} \varphi(q)/q \asymp n$. Lean: \texttt{sum\_totient\_div\_self}.
+  \lean{DuffinSchaeffer.sum_totient_div_self}
+  \leanok
+  \uses{lem:dirichlet-swap}
+  $\tfrac{n}{2} \leq \sum_{q \leq n} \varphi(q)/q \leq n$; in particular
+  $\sum_{q \leq n} \varphi(q)/q \asymp n$.
 \end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved}, with explicit constants $c = 1/2$ and $C = 1$.
+
+  The upper bound is $\varphi(q) \leq q$ termwise. For the lower bound, sum
+  $\sum_{d \mid q} \varphi(d) = q$ (Mathlib's \texttt{Nat.sum\_totient}) over $q \leq n$.
+  The left side is $n(n+1)/2$ by Gauss; Lemma \ref{lem:dirichlet-swap} rewrites it as
+  $\sum_{d \leq n} \lfloor n/d \rfloor \varphi(d)$, which is at most
+  $n \sum_{d \leq n} \varphi(d)/d$. Dividing by $n$ gives
+  $\sum_{q \leq n} \varphi(q)/q \geq (n+1)/2$.
+
+  Worth recording because the obvious route is much worse: expanding
+  $\varphi(q)/q = \sum_{d \mid q} \mu(d)/d$ leads to $\sum_{d} \mu(d)/d^2 = 1/\zeta(2)$
+  and the Basel problem, none of which is needed. The constant $1/2$ is not sharp --- the
+  truth is $6/\pi^2 \approx 0.61$ --- but no estimate downstream cares.
+\end{proof}
 
 \chapter{Overlap estimates}
 \label{chap:overlap}
