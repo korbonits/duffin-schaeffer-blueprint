@@ -15,6 +15,7 @@
 import Mathlib.NumberTheory.WellApproximable
 import Mathlib.Topology.MetricSpace.HausdorffDimension
 import Batteries.Util.ProofWanted
+import Mathlib.MeasureTheory.Measure.Lebesgue.EqHaar
 
 open MeasureTheory Set Filter
 open scoped NNReal ENNReal Nat
@@ -44,17 +45,140 @@ def setK (ψ : ℕ+ → ℝ≥0) : Set ℝ :=
 noncomputable def psiStar (ψ : ℕ+ → ℝ≥0) : ℕ+ → ℝ≥0∞ :=
   fun q ↦ φ q * sSup {r : ℝ≥0∞ | ∃ n : ℕ+, q ∣ n ∧ r = ψ n / n}
 
-/-- The measure-theoretic size of a single `setAq`. Each of the `φ(q)` admissible
-numerators contributes an interval of length `2 ψ(q) / q`, and for `ψ q ≤ 1/2` those
-intervals are disjoint, so the bound below is an equality. -/
-proof_wanted measurableSet_setAq (ψ : ℕ+ → ℝ≥0) (q : ℕ+) :
-    MeasurableSet (setAq ψ q)
+/-! ### The measure of a single `setAq`
 
-proof_wanted volume_setAq_le (ψ : ℕ+ → ℝ≥0) (q : ℕ+) :
-    volume (setAq ψ q) ≤ ENNReal.ofReal (2 * (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / (q : ℝ))
+Each of the `φ(q)` admissible numerators contributes an interval of length `2 ψ(q) / q`,
+and for `ψ q ≤ 1/2` those intervals are disjoint and contained in `[0,1]`. -/
 
+/-- `setAq` as an explicit union of closed balls: `α` is within `ψ(q)/q` of a reduced
+fraction with denominator `q`. -/
+theorem setAq_eq (ψ : ℕ+ → ℝ≥0) (q : ℕ+) :
+    setAq ψ q = Set.Icc 0 1 ∩
+      ⋃ a ∈ {a : ℕ | Nat.Coprime a q}, Metric.closedBall ((a : ℝ) / q) ((ψ q : ℝ) / q) := by
+  ext α
+  simp only [setAq, Set.mem_ofPred_eq, Set.mem_inter_iff, Set.mem_iUnion, Metric.mem_closedBall,
+    Real.dist_eq, exists_prop, Approximates]
+
+theorem measurableSet_setAq (ψ : ℕ+ → ℝ≥0) (q : ℕ+) : MeasurableSet (setAq ψ q) := by
+  rw [setAq_eq]
+  exact measurableSet_Icc.inter
+    (MeasurableSet.biUnion (Set.to_countable _) fun a _ => measurableSet_closedBall)
+
+/-- The admissible numerators. Under `ψ q ≤ 1/2` no numerator outside `0 ≤ a ≤ q` can
+put a point of `[0,1]` within `ψ(q)/q` of `a/q`. -/
+noncomputable def numerators (q : ℕ+) : Finset ℕ :=
+  {a ∈ Finset.range ((q : ℕ) + 1) | Nat.Coprime a q}
+
+theorem setAq_subset (ψ : ℕ+ → ℝ≥0) (q : ℕ+) (hψ : (ψ q : ℝ) ≤ 1 / 2) :
+    setAq ψ q ⊆ ⋃ a ∈ numerators q, Metric.closedBall ((a : ℝ) / q) ((ψ q : ℝ) / q) := by
+  have hq0 : (0 : ℝ) < (q : ℕ) := by exact_mod_cast q.pos
+  intro α hα
+  rw [setAq_eq] at hα
+  obtain ⟨hα01, hu⟩ := hα
+  simp only [Set.mem_iUnion, Metric.mem_closedBall, Real.dist_eq, exists_prop,
+    Set.mem_ofPred_eq] at hu
+  obtain ⟨a, hcop, hball⟩ := hu
+  have e1 : (a : ℝ) / (q : ℕ) * (q : ℕ) = a := div_mul_cancel₀ _ (ne_of_gt hq0)
+  have e2 : (ψ q : ℝ) / (q : ℕ) * (q : ℕ) = (ψ q : ℝ) := div_mul_cancel₀ _ (ne_of_gt hq0)
+  have h3 := mul_le_mul_of_nonneg_right (abs_le.mp hball).1 hq0.le
+  rw [neg_mul, e2, sub_mul, e1] at h3
+  have h4 : α * (q : ℕ) ≤ 1 * (q : ℕ) := mul_le_mul_of_nonneg_right hα01.2 hq0.le
+  have ha : (a : ℝ) < (q : ℕ) + 1 := by nlinarith
+  have ha' : a < (q : ℕ) + 1 := by exact_mod_cast ha
+  simp only [Set.mem_iUnion, numerators, Finset.mem_filter, Finset.mem_range, exists_prop,
+    Metric.mem_closedBall, Real.dist_eq]
+  exact ⟨a, ⟨ha', hcop⟩, hball⟩
+
+/-- For `q ≥ 2` the admissible numerators are exactly the `φ(q)` residues counted by the
+totient: `a = 0` and `a = q` are both excluded by coprimality. -/
+theorem card_numerators {q : ℕ+} (hq : 2 ≤ (q : ℕ)) : (numerators q).card = φ (q : ℕ) := by
+  rw [Nat.totient_eq_card_coprime]
+  congr 1
+  ext a
+  simp only [numerators, Finset.mem_filter, Finset.mem_range]
+  constructor
+  · rintro ⟨ha, hcop⟩
+    refine ⟨?_, Nat.coprime_comm.mp hcop⟩
+    rcases lt_or_eq_of_le (Nat.lt_succ_iff.mp ha) with h | h
+    · exact h
+    · exfalso
+      rw [h] at hcop
+      have : (q : ℕ) = 1 := by simpa [Nat.Coprime] using hcop
+      omega
+  · rintro ⟨ha, hcop⟩
+    exact ⟨Nat.lt_succ_of_lt ha, Nat.coprime_comm.mp hcop⟩
+
+/-- The `q = 1` case, where the two intervals meeting `[0,1]` are the truncated halves
+around `0` and `1`; together they have length exactly `2 ψ(1) = 2 ψ(1) φ(1) / 1`, so the
+general bound holds but the counting argument for `q ≥ 2` does not apply. -/
+theorem volume_setAq_le_one (ψ : ℕ+ → ℝ≥0) (hψ : (ψ 1 : ℝ) ≤ 1 / 2) :
+    volume (setAq ψ 1) ≤ ENNReal.ofReal (2 * (ψ 1 : ℝ)) := by
+  have hsub : setAq ψ 1 ⊆ Set.Icc 0 (ψ 1 : ℝ) ∪ Set.Icc (1 - (ψ 1 : ℝ)) 1 := by
+    intro α hα
+    rw [setAq_eq] at hα
+    obtain ⟨hα01, hu⟩ := hα
+    simp only [Set.mem_iUnion, Metric.mem_closedBall, Real.dist_eq, exists_prop,
+      Set.mem_ofPred_eq, PNat.one_coe, Nat.cast_one, div_one] at hu
+    obtain ⟨a, -, hball⟩ := hu
+    have hb := abs_le.mp hball
+    match a with
+    | 0 => exact Or.inl ⟨hα01.1, by simpa using hb.2⟩
+    | 1 => exact Or.inr ⟨by push_cast at hb ⊢; linarith [hb.1], hα01.2⟩
+    | (n + 2) =>
+      exfalso
+      have : ((n : ℝ) + 2) ≤ α + (ψ 1 : ℝ) := by push_cast at hb ⊢; linarith [hb.1]
+      have hn : (0 : ℝ) ≤ n := Nat.cast_nonneg n
+      linarith [hα01.2]
+  calc volume (setAq ψ 1) ≤ volume (Set.Icc 0 (ψ 1 : ℝ) ∪ Set.Icc (1 - (ψ 1 : ℝ)) 1) :=
+        measure_mono hsub
+    _ ≤ volume (Set.Icc (0 : ℝ) (ψ 1 : ℝ)) + volume (Set.Icc (1 - (ψ 1 : ℝ)) 1) :=
+        measure_union_le _ _
+    _ = ENNReal.ofReal (2 * (ψ 1 : ℝ)) := by
+        rw [Real.volume_Icc, Real.volume_Icc, ← ENNReal.ofReal_add (by simp) (by simp)]
+        congr 1
+        ring
+
+/-- **The measure of a single `setAq`.**
+
+Note the hypothesis. The bound was originally stated with no constraint on `ψ`, but the
+counting argument needs one: for large `ψ(q)` the numerators `a > q` also put mass in
+`[0,1]`, and at `q = 1` the numerators `0` and `1` are both coprime to `1` while
+`φ(1) = 1`, so `#(numerators q) = φ(q)` fails there. Under `ψ q ≤ 1/2` -- which is what
+`setA_truncate` supplies, and which every statement downstream of it assumes anyway --
+both problems disappear. -/
+theorem volume_setAq_le (ψ : ℕ+ → ℝ≥0) (q : ℕ+) (hψ : (ψ q : ℝ) ≤ 1 / 2) :
+    volume (setAq ψ q) ≤ ENNReal.ofReal (2 * (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / ((q : ℕ) : ℝ)) := by
+  have hq0 : (0 : ℝ) < ((q : ℕ) : ℝ) := by exact_mod_cast q.pos
+  by_cases hq1 : q = 1
+  · -- `q = 1`
+    subst hq1
+    simpa using volume_setAq_le_one ψ hψ
+  · -- `q ≥ 2`
+    have hq2 : 2 ≤ (q : ℕ) := by
+      have h1 : (q : ℕ) ≠ 1 := fun h => hq1 (PNat.coe_eq_one_iff.mp h)
+      have := q.pos
+      omega
+    have hnn : (0 : ℝ) ≤ 2 * (ψ q : ℝ) / ((q : ℕ) : ℝ) := by positivity
+    calc volume (setAq ψ q)
+        ≤ volume (⋃ a ∈ numerators q,
+            Metric.closedBall ((a : ℝ) / (q : ℕ)) ((ψ q : ℝ) / (q : ℕ))) :=
+          measure_mono (setAq_subset ψ q hψ)
+      _ ≤ ∑ a ∈ numerators q,
+            volume (Metric.closedBall ((a : ℝ) / (q : ℕ)) ((ψ q : ℝ) / (q : ℕ))) :=
+          measure_biUnion_finset_le _ _
+      _ = (numerators q).card • ENNReal.ofReal (2 * ((ψ q : ℝ) / (q : ℕ))) := by
+          simp [Real.volume_closedBall]
+      _ = ENNReal.ofReal (2 * (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / ((q : ℕ) : ℝ)) := by
+          rw [card_numerators hq2, nsmul_eq_mul, ← ENNReal.ofReal_natCast,
+            ← ENNReal.ofReal_mul (Nat.cast_nonneg _)]
+          congr 1
+          field_simp
+
+/-- The bound of `volume_setAq_le` is in fact an equality under the same hypothesis: for
+`ψ q ≤ 1/2` the `φ(q)` intervals are pairwise disjoint and contained in `[0,1]`. Only the
+upper bound is used downstream, so this is left open. -/
 proof_wanted volume_setAq (ψ : ℕ+ → ℝ≥0) (q : ℕ+) (hψ : (ψ q : ℝ) ≤ 1 / 2) :
-    volume (setAq ψ q) = ENNReal.ofReal (2 * (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / (q : ℝ))
+    volume (setAq ψ q) = ENNReal.ofReal (2 * (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / ((q : ℕ) : ℝ))
 
 /-- `setA` is the `limsup` of the `setAq`. The hypothesis `ψ ≤ 1/2` is what confines the
 numerator of a solution to `0 ≤ a ≤ q`, which is why `setA` counts pairs while `setAq`

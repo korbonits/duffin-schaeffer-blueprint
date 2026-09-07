@@ -130,18 +130,61 @@ own source, and closing it is a contribution to Mathlib independent of this proj
   $\pstar(q) = \varphi(q) \sup \{ \ps(n)/n : q \mid n \}$.
 \end{definition}
 
-\begin{lemma}[Measure of a single $\Aq$]
-  \label{lem:volume-setaq}
-  \notready
+\begin{lemma}[$\Aq$ as a union of balls]
+  \label{lem:setaq-union}
+  \lean{DuffinSchaeffer.setAq_eq}
+  \leanok
   \uses{def:setaq}
-  $\Leb(\Aq) \leq 2\ps(q)\varphi(q)/q$, with equality when $\ps(q) \leq 1/2$.
+  $\Aq = [0,1] \cap \bigcup_{\gcd(a,q)=1} \overline{B}(a/q, \ps(q)/q)$.
 \end{lemma}
 
 \begin{proof}
-  Each of the $\varphi(q)$ admissible numerators contributes an interval of length
-  $2\ps(q)/q$. For $\ps(q) \leq 1/2$ these intervals are pairwise disjoint, since
-  consecutive reduced fractions with denominator $q$ are at distance at least $1/q$.
-  Lean: \texttt{volume\_setAq\_le}, \texttt{volume\_setAq}.
+  \leanok
+  \textbf{Proved.} Unfolding both sides; (1.7) is membership of a closed ball.
+\end{proof}
+
+\begin{lemma}[Measurability of $\Aq$]
+  \label{lem:measurable-setaq}
+  \lean{DuffinSchaeffer.measurableSet_setAq}
+  \leanok
+  \uses{lem:setaq-union}
+  $\Aq$ is measurable.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} A countable union of closed balls, intersected with $[0,1]$.
+  No hypothesis on $\ps$ is needed.
+\end{proof}
+
+\begin{lemma}[Measure of a single $\Aq$]
+  \label{lem:volume-setaq}
+  \lean{DuffinSchaeffer.volume_setAq_le}
+  \leanok
+  \uses{lem:setaq-union, lem:truncate}
+  If $\ps(q) \leq 1/2$ then $\Leb(\Aq) \leq 2\ps(q)\varphi(q)/q$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved}, for the upper bound. Under $\ps(q) \leq 1/2$ no numerator outside
+  $0 \leq a \leq q$ can bring a point of $[0,1]$ within $\ps(q)/q$ of $a/q$
+  (\texttt{setAq\_subset}), so $\Aq$ is covered by $\#\{a \le q : \gcd(a,q)=1\}$ balls of
+  radius $\ps(q)/q$; for $q \geq 2$ that count is exactly $\varphi(q)$, because $a = 0$
+  and $a = q$ are both excluded by coprimality (\texttt{card\_numerators}).
+
+  \emph{The hypothesis is not cosmetic, and this lemma was originally stated without it.}
+  Two things go wrong. For large $\ps(q)$ the numerators $a > q$ also deposit mass in
+  $[0,1]$, so the count $\varphi(q)$ is not an upper bound. And at $q = 1$ both $a = 0$
+  and $a = 1$ are coprime to $1$ while $\varphi(1) = 1$, so $\#\{a \le q\} = \varphi(q)$
+  simply fails; the conclusion still holds there, but only because the two intervals are
+  truncated by $[0,1]$ to total length exactly $2\ps(1)$, which is a different argument
+  (\texttt{volume\_setAq\_le\_one}). Both problems vanish under $\ps \leq 1/2$, which
+  Lemma \ref{lem:truncate} supplies and everything downstream assumes anyway.
+
+  The matching lower bound --- the intervals are pairwise disjoint, so this is an
+  equality --- is stated as \texttt{volume\_setAq} and left open, since only the upper
+  bound is used.
 \end{proof}
 
 \begin{lemma}[Reduction to $\ps \leq 1/2$]
