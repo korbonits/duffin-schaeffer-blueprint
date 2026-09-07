@@ -15,6 +15,7 @@
 import DuffinSchaeffer.Gallagher
 import DuffinSchaeffer.ChungErdos
 import DuffinSchaeffer.Overlap
+import DuffinSchaeffer.Convergence
 
 open MeasureTheory Set Filter
 open scoped ENNReal NNReal Nat
@@ -28,9 +29,11 @@ proof_wanted theorem_1 (ψ : ℕ+ → ℝ≥0)
     (hdiv : ¬ Summable fun q : ℕ+ ↦ (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / (q : ℝ)) :
     MeasurableSet (setA ψ) ∧ volume (setA ψ) = 1
 
-/-- Theorem 2(a): the convergence half, without coprimality. First Borel-Cantelli. -/
-proof_wanted theorem_2_a (ψ : ℕ+ → ℝ≥0) (hψ : ∑' q : ℕ+, psiStar ψ q < ⊤) :
-    MeasurableSet (setK ψ) ∧ volume (setK ψ) = 0
+/-- **Theorem 2(a)**: the convergence half, without coprimality. Proved; see
+`DuffinSchaeffer/Convergence.lean`. -/
+theorem theorem_2_a (ψ : ℕ+ → ℝ≥0) (hψ : ∑' q : ℕ+, psiStar ψ q < ⊤) :
+    MeasurableSet (setK ψ) ∧ volume (setK ψ) = 0 :=
+  ⟨measurableSet_setK ψ, volume_setK_eq_zero ψ hψ⟩
 
 /-- Theorem 2(b): the divergence half, without coprimality. Reduces to Theorem 1 by
 applying it to a function built from `ψ⋆`. -/

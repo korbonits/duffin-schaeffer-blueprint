@@ -4,5 +4,6 @@ import DuffinSchaeffer.ChungErdos
 import DuffinSchaeffer.Anatomy
 import DuffinSchaeffer.GCDGraph
 import DuffinSchaeffer.Overlap
+import DuffinSchaeffer.Convergence
 import DuffinSchaeffer.Main
 import DuffinSchaeffer.Hausdorff

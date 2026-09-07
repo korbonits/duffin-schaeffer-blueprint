@@ -562,13 +562,17 @@ which the estimate holds.
 
 \begin{theorem}[Theorem 2(a), convergence]
   \label{thm:two-a}
-  \notready
+  \lean{DuffinSchaeffer.theorem_2_a}
+  \leanok
   \uses{def:psistar, def:seta}
-  If $\sum_q \pstar(q) < \infty$ then $\Leb(\K(\ps)) = 0$.
+  If $\sum_q \pstar(q) < \infty$ then $\K(\ps)$ is measurable and $\Leb(\K(\ps)) = 0$.
 \end{theorem}
 
 \begin{proof}
+  \leanok
   \uses{lem:measurable-seta, lem:psisup-le-psistar}
+  \textbf{Proved.} The first terminal node of the project to close. What follows is the
+  argument as formalised.
   Measurability is done (Lemma \ref{lem:measurable-seta}). For the null statement:
 
   Given $\alpha \in \K(\ps)$ there are infinitely many pairs $(a,q)$, $a \leq q$, with
@@ -595,7 +599,15 @@ which the estimate holds.
   $b \leq d$ bounds the numerators, infinitely many $d$.
 
   Worth stating plainly because the flawed version is the one that comes to mind first
-  and it is not visibly wrong. Lean: \texttt{theorem\_2\_a}.
+  and it is not visibly wrong.
+
+  Both repairs are in the Lean proof: \texttt{finite\_ratio\_ge} is the statement that
+  $\{q : \delta \le \ps(q)/q\}$ is finite for $\delta > 0$, obtained from
+  \texttt{ENNReal.finite\_const\_le\_of\_tsum\_ne\_top}, and the rationals are removed by
+  \texttt{Set.Countable.measure\_zero}. The reduction to lowest terms is
+  \texttt{redNum}/\texttt{redDen}, and the final step is Mathlib's
+  \texttt{measure\_limsup\_cofinite\_eq\_zero} composed with
+  \texttt{Filter.cofinite.limsup\_set\_eq}.
 \end{proof}
 
 \begin{theorem}[Theorem 2(b), divergence]
