@@ -85,6 +85,82 @@ theorem setA_ae_eq_setAStrict (ψ : ℕ+ → ℝ≥0) : setA ψ =ᵐ[volume] set
   · exact (countable_endpoints ψ).measure_zero _
   · simp [Set.sdiff_eq_empty.mpr (setAStrict_subset ψ)]
 
+/-! ### The circle norm against the absolute value
+
+Mathlib states well-approximability with the quotient norm on `ℝ/ℤ`; (1.7) uses `|·|` on
+`ℝ`. On `[0,1]` these agree wherever it matters, but not everywhere: `α = 0.9` and
+`m/n = 0.1` are at circle distance `0.2` and real distance `0.8`. The point of the
+lemmas below is that under `ψ ≤ 1/2` the discrepant case never produces a solution. -/
+
+theorem norm_coe_eq_abs {x : ℝ} (h : |x| ≤ 1 / 2) : ‖(x : UnitAddCircle)‖ = |x| :=
+  (AddCircle.norm_coe_eq_abs_iff 1 (by norm_num)).mpr (by simpa using h)
+
+theorem norm_coe_of_gt {x : ℝ} (h1 : (1 : ℝ) / 2 < x) (h2 : x ≤ 1) :
+    ‖(x : UnitAddCircle)‖ = 1 - x := by
+  rw [AddCircle.norm_eq]
+  have hr : round ((1 : ℝ)⁻¹ * x) = 1 := by
+    rw [round_eq, inv_one, one_mul, Int.floor_eq_iff]
+    constructor <;> push_cast <;> linarith
+  rw [hr]
+  push_cast
+  rw [abs_of_nonpos (by linarith)]
+  ring
+
+theorem norm_coe_of_lt {x : ℝ} (h1 : x < -(1 / 2)) (h2 : -1 ≤ x) :
+    ‖(x : UnitAddCircle)‖ = 1 + x := by
+  rw [AddCircle.norm_eq]
+  have hr : round ((1 : ℝ)⁻¹ * x) = -1 := by
+    rw [round_eq, inv_one, one_mul, Int.floor_eq_iff]
+    constructor <;> push_cast <;> linarith
+  rw [hr]
+  push_cast
+  rw [abs_of_nonneg (by linarith)]
+  ring
+
+/-- **The circle and real conditions agree.** For `n ≥ 2` and `1 ≤ m ≤ n - 1`, a point of
+`[0,1]` is within `δ ≤ 1/(2n)` of `m/n` on the circle exactly when it is on the line.
+
+The far case is excluded by counting: `|α - m/n| ≤ 1 - 1/n`, so if the real distance
+exceeds `1/2` then the circle distance is `1 - |α - m/n| ≥ 1/n > δ`, and neither side
+holds. This is where the truncation `ψ ≤ 1/2` pays for itself a second time. -/
+theorem norm_lt_iff_abs_lt {α : ℝ} (hα : α ∈ Set.Icc (0 : ℝ) 1) {m n : ℕ} (hn : 2 ≤ n)
+    (hm : 1 ≤ m) (hmn : m + 1 ≤ n) {δ : ℝ} (hδ : δ ≤ 1 / (2 * n)) :
+    ‖((α - (m : ℝ) / n : ℝ) : UnitAddCircle)‖ < δ ↔ |α - (m : ℝ) / n| < δ := by
+  have hn0 : (0 : ℝ) < n := by positivity
+  have hn2 : (2 : ℝ) ≤ n := by exact_mod_cast hn
+  have hmR : (1 : ℝ) ≤ m := by exact_mod_cast hm
+  have hmnR : (m : ℝ) + 1 ≤ n := by exact_mod_cast hmn
+  have hlow : 1 / (n : ℝ) ≤ (m : ℝ) / n := by
+    rw [div_le_div_iff_of_pos_right hn0]; exact hmR
+  have hhigh : (m : ℝ) / n ≤ 1 - 1 / n := by
+    rw [div_le_iff₀ hn0]
+    have : (1 : ℝ) - 1 / n = ((n : ℝ) - 1) / n := by field_simp
+    rw [this, div_mul_cancel₀ _ hn0.ne']
+    linarith
+  have hxub : α - (m : ℝ) / n ≤ 1 - 1 / n := by linarith [hα.2, hlow]
+  have hxlb : -(1 - 1 / (n : ℝ)) ≤ α - (m : ℝ) / n := by linarith [hα.1, hhigh]
+  have habs : |α - (m : ℝ) / n| ≤ 1 - 1 / n := abs_le.mpr ⟨hxlb, hxub⟩
+  have hdn : δ ≤ 1 / (2 * (n : ℝ)) := hδ
+  have hinvpos : (0 : ℝ) < 1 / n := by positivity
+  have hinv : 1 / (2 * (n : ℝ)) < 1 / (n : ℝ) := by
+    rw [div_lt_div_iff₀ (by positivity) hn0]; linarith
+  by_cases hc : |α - (m : ℝ) / n| ≤ 1 / 2
+  · rw [norm_coe_eq_abs hc]
+  · push Not at hc
+    have hnorm : ‖((α - (m : ℝ) / n : ℝ) : UnitAddCircle)‖ = 1 - |α - (m : ℝ) / n| := by
+      rcases abs_cases (α - (m : ℝ) / n) with ⟨he, _⟩ | ⟨he, _⟩
+      · rw [norm_coe_of_gt (by linarith) (by linarith)]; linarith
+      · rw [norm_coe_of_lt (by linarith) (by linarith)]; linarith
+    constructor
+    · intro h
+      exfalso
+      rw [hnorm] at h
+      have : 1 / (n : ℝ) ≤ 1 - |α - (m : ℝ) / n| := by linarith
+      linarith
+    · intro h
+      exfalso
+      linarith
+
 /-- Transfer: `setA ψ` is, modulo a null set, the preimage of Mathlib's well-approximable
 set under `ℝ → ℝ/ℤ`.
 

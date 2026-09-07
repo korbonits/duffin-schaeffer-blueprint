@@ -381,10 +381,35 @@ own source, and closing it is a contribution to Mathlib independent of this proj
   error would not be visible; the rest is bookkeeping about the quotient map.
 \end{proof}
 
+\begin{lemma}[The circle norm against the absolute value]
+  \label{lem:circle-norm}
+  \lean{DuffinSchaeffer.norm_lt_iff_abs_lt}
+  \leanok
+  For $n \geq 2$, $1 \leq m \leq n-1$, $\alpha \in [0,1]$ and $\delta \leq 1/(2n)$,
+  \[ \|\alpha - m/n\|_{\R/\Z} < \delta \iff |\alpha - m/n| < \delta. \]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} The two do not agree in general --- $\alpha = 0.9$ and $m/n = 0.1$ are
+  at circle distance $0.2$ and real distance $0.8$ --- so the content is that under
+  $\ps \leq 1/2$ the discrepant case never produces a solution.
+
+  Mathlib's \texttt{AddCircle.norm\_coe\_eq\_abs\_iff} gives agreement whenever
+  $|\alpha - m/n| \leq 1/2$. Otherwise, counting bounds the real distance:
+  $m/n$ lies in $[1/n, 1 - 1/n]$ and $\alpha \in [0,1]$, so
+  $|\alpha - m/n| \leq 1 - 1/n$, and then the circle distance is
+  $1 - |\alpha - m/n| \geq 1/n > \delta$. Neither side holds, so the equivalence is
+  vacuously true there.
+
+  This is where the truncation $\ps \leq 1/2$ pays for itself a second time; the first
+  was Lemma \ref{lem:le-of-approximates}.
+\end{proof}
+
 \begin{lemma}[Transfer to the circle]
   \label{lem:transfer}
   \notready
-  \uses{def:seta, def:distseq, lem:strict}
+  \uses{def:seta, def:distseq, lem:strict, lem:circle-norm}
   For $\ps \leq 1/2$, $\A(\ps)$ agrees up to a null set with the preimage of
   $\mathrm{addWellApproximable}(\R/\Z, \delta_\ps)$ under $\R \to \R/\Z$,
   intersected with $[0,1]$.
