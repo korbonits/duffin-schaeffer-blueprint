@@ -8,6 +8,7 @@
    rest of this project. -/
 import DuffinSchaeffer.Basic
 import Mathlib.NumberTheory.SmoothNumbers
+import Mathlib.NumberTheory.ArithmeticFunction.Misc
 import Mathlib.Data.Nat.Factorization.Basic
 
 open Filter Asymptotics Finset
@@ -119,8 +120,127 @@ proof_wanted mertens_third :
       c * Real.log n ≤ ∏ p ∈ Nat.primesBelow n, (1 - (1 : ℝ) / p)⁻¹ ∧
         ∏ p ∈ Nat.primesBelow n, (1 - (1 : ℝ) / p)⁻¹ ≤ C * Real.log n
 
-/-- The divisor bound `d(n) = O_ε(n^ε)`. -/
-proof_wanted divisor_bound (ε : ℝ) (hε : 0 < ε) :
-    ∃ C : ℝ, ∀ n : ℕ, 0 < n → ((n : ℕ).divisors.card : ℝ) ≤ C * (n : ℝ) ^ ε
+/-- Linear is dominated by exponential, with an explicit constant. The engine of the
+divisor bound: applied with `r = 2^ε` it bounds `a + 1` against `2^{aε}`, uniformly in
+the prime. -/
+theorem exists_linear_le_pow {r : ℝ} (hr : 1 < r) :
+    ∃ C : ℝ, 0 < C ∧ ∀ a : ℕ, ((a : ℝ) + 1) ≤ C * r ^ a := by
+  have hr0 : (0 : ℝ) < r := lt_trans zero_lt_one hr
+  have h1 : Tendsto (fun n : ℕ => (n : ℝ) / r ^ n) atTop (nhds 0) := by
+    simpa using tendsto_pow_const_div_const_pow_of_one_lt 1 hr
+  have h2 : Tendsto (fun n : ℕ => (1 : ℝ) / r ^ n) atTop (nhds 0) := by
+    simpa using tendsto_pow_const_div_const_pow_of_one_lt 0 hr
+  have h : Tendsto (fun n : ℕ => ((n : ℝ) + 1) / r ^ n) atTop (nhds 0) := by
+    have hsum := h1.add h2
+    simp only [add_zero] at hsum
+    refine hsum.congr fun n => ?_
+    rw [add_div]
+  obtain ⟨C, hC⟩ := h.bddAbove_range
+  refine ⟨max C 1, lt_of_lt_of_le zero_lt_one (le_max_right _ _), fun a => ?_⟩
+  have hra : (0 : ℝ) < r ^ a := pow_pos hr0 a
+  have hle : ((a : ℝ) + 1) / r ^ a ≤ max C 1 :=
+    le_trans (hC (Set.mem_range_self a)) (le_max_left _ _)
+  calc ((a : ℝ) + 1) = (((a : ℝ) + 1) / r ^ a) * r ^ a := by field_simp
+    _ ≤ max C 1 * r ^ a := by gcongr
+
+theorem add_one_le_two_pow (a : ℕ) : ((a : ℝ) + 1) ≤ 2 ^ a := by
+  induction a with
+  | zero => norm_num
+  | succ k ih =>
+    have h1 : (1 : ℝ) ≤ 2 ^ k := one_le_pow₀ (by norm_num)
+    push_cast
+    calc ((k : ℝ) + 1 + 1) ≤ 2 ^ k + 1 := by linarith
+      _ ≤ 2 ^ k + 2 ^ k := by linarith
+      _ = 2 ^ (k + 1) := by ring
+
+theorem rpow_pow_comm {x : ℝ} (hx : 0 ≤ x) (a : ℕ) (ε : ℝ) :
+    ((x ^ a : ℝ)) ^ ε = (x ^ ε) ^ a := by
+  rw [← Real.rpow_natCast x a, ← Real.rpow_mul hx, ← Real.rpow_natCast (x ^ ε) a,
+    ← Real.rpow_mul hx, mul_comm]
+
+/-- **The divisor bound** `d(n) = O_ε(n^ε)`.
+
+The prime-by-prime bound is `a + 1 ≤ w(p) · (p^a)^ε`, where `w(p) = 1` once `p^ε ≥ 2` --
+because then `a + 1 ≤ 2^a ≤ (p^ε)^a` -- and `w(p) = C_ε` otherwise, with `C_ε` the
+constant of `exists_linear_le_pow` at `r = 2^ε`. Only the primes below a threshold
+depending on `ε` contribute a factor, and there are at most `P` of them, so the constant
+is `C_ε^P`. -/
+theorem divisor_bound (ε : ℝ) (hε : 0 < ε) :
+    ∃ C : ℝ, ∀ n : ℕ, 0 < n → ((n : ℕ).divisors.card : ℝ) ≤ C * (n : ℝ) ^ ε := by
+  classical
+  have h2 : (0 : ℝ) < 2 := by norm_num
+  have hr : (1 : ℝ) < (2 : ℝ) ^ ε :=
+    (Real.one_lt_rpow_iff_of_pos h2).mpr (Or.inl ⟨by norm_num, hε⟩)
+  obtain ⟨Cε, hCε0, hCε⟩ := exists_linear_le_pow hr
+  set D : ℝ := max Cε 1 with hDdef
+  have hD1 : (1 : ℝ) ≤ D := le_max_right _ _
+  have hD0 : (0 : ℝ) < D := lt_of_lt_of_le zero_lt_one hD1
+  -- primes at least `P` satisfy `p ^ ε ≥ 2`
+  obtain ⟨P, hP⟩ : ∃ P : ℕ, ∀ p : ℕ, P ≤ p → (2 : ℝ) ≤ (p : ℝ) ^ ε := by
+    obtain ⟨P, hP⟩ := exists_nat_gt ((2 : ℝ) ^ (1 / ε))
+    refine ⟨P, fun p hp => ?_⟩
+    have hpP : (2 : ℝ) ^ (1 / ε) ≤ (p : ℝ) := le_trans hP.le (by exact_mod_cast hp)
+    have hpos : (0 : ℝ) < (2 : ℝ) ^ (1 / ε) := Real.rpow_pos_of_pos h2 _
+    calc (2 : ℝ) = ((2 : ℝ) ^ (1 / ε)) ^ ε := by
+          rw [← Real.rpow_mul (le_of_lt h2), one_div, inv_mul_cancel₀ (ne_of_gt hε),
+            Real.rpow_one]
+      _ ≤ (p : ℝ) ^ ε := Real.rpow_le_rpow (le_of_lt hpos) hpP (le_of_lt hε)
+  refine ⟨D ^ P, fun n hn => ?_⟩
+  have hn0 : n ≠ 0 := hn.ne'
+  set w : ℕ → ℝ := fun p => if p < P then D else 1 with hwdef
+  -- prime-by-prime bound
+  have hpt : ∀ p ∈ n.primeFactors,
+      ((n.factorization p : ℝ) + 1) ≤ w p * (((p : ℝ) ^ n.factorization p) ^ ε) := by
+    intro p hp
+    have hpp : p.Prime := Nat.prime_of_mem_primeFactors hp
+    have hp2 : (2 : ℝ) ≤ (p : ℝ) := by exact_mod_cast hpp.two_le
+    have hp0 : (0 : ℝ) ≤ (p : ℝ) := by positivity
+    set a := n.factorization p
+    rw [rpow_pow_comm hp0 a ε]
+    by_cases hlt : p < P
+    · have hwp : w p = D := by simp [hwdef, hlt]
+      rw [hwp]
+      refine le_trans (hCε a) ?_
+      have hbase : (0 : ℝ) ≤ (2 : ℝ) ^ ε := le_of_lt (Real.rpow_pos_of_pos h2 ε)
+      have hmono : ((2 : ℝ) ^ ε) ≤ ((p : ℝ) ^ ε) :=
+        Real.rpow_le_rpow (le_of_lt h2) hp2 (le_of_lt hε)
+      calc Cε * ((2 : ℝ) ^ ε) ^ a ≤ D * ((2 : ℝ) ^ ε) ^ a := by
+            gcongr; exact le_max_left _ _
+        _ ≤ D * ((p : ℝ) ^ ε) ^ a := by gcongr
+    · have hwp : w p = 1 := by simp [hwdef, hlt]
+      rw [hwp, one_mul]
+      have hpe : (2 : ℝ) ≤ (p : ℝ) ^ ε := hP p (by omega)
+      calc ((a : ℝ) + 1) ≤ 2 ^ a := add_one_le_two_pow a
+        _ ≤ ((p : ℝ) ^ ε) ^ a := by gcongr
+  -- assemble the product bounds
+  have hcard : ((n.divisors.card : ℕ) : ℝ)
+      = ∏ p ∈ n.primeFactors, ((n.factorization p : ℝ) + 1) := by
+    rw [Nat.card_divisors hn0]
+    push_cast
+    rfl
+  have hnpow : (n : ℝ) ^ ε = ∏ p ∈ n.primeFactors, (((p : ℝ) ^ n.factorization p) ^ ε) := by
+    rw [Real.finsetProd_rpow _ _ (fun p _ => by positivity) ε]
+    congr 1
+    exact_mod_cast Nat.prod_primeFactors_pow_factorization hn0
+  have hprod : ∏ p ∈ n.primeFactors, ((n.factorization p : ℝ) + 1)
+      ≤ (∏ p ∈ n.primeFactors, w p) * ((n : ℝ) ^ ε) := by
+    rw [hnpow, ← Finset.prod_mul_distrib]
+    exact Finset.prod_le_prod₀ (fun p _ => by positivity) (fun p hp => hpt p hp)
+  have hw : ∏ p ∈ n.primeFactors, w p ≤ D ^ P := by
+    have h1 : ∏ p ∈ n.primeFactors, w p = ∏ _p ∈ n.primeFactors.filter (· < P), D := by
+      rw [← Finset.prod_filter_mul_prod_filter_not n.primeFactors (· < P) w]
+      have hone : ∏ p ∈ n.primeFactors.filter (fun p => ¬ p < P), w p = 1 :=
+        Finset.prod_eq_one fun p hp => by simp [hwdef, (Finset.mem_filter.mp hp).2]
+      rw [hone, mul_one]
+      exact Finset.prod_congr rfl fun p hp => by simp [hwdef, (Finset.mem_filter.mp hp).2]
+    rw [h1, Finset.prod_const]
+    refine pow_le_pow_right₀ hD1 ?_
+    calc (n.primeFactors.filter (· < P)).card ≤ (Finset.range P).card :=
+          Finset.card_le_card fun p hp => Finset.mem_range.mpr (Finset.mem_filter.mp hp).2
+      _ = P := Finset.card_range P
+  rw [hcard]
+  calc ∏ p ∈ n.primeFactors, ((n.factorization p : ℝ) + 1)
+      ≤ (∏ p ∈ n.primeFactors, w p) * ((n : ℝ) ^ ε) := hprod
+    _ ≤ D ^ P * ((n : ℝ) ^ ε) := by gcongr
 
 end DuffinSchaeffer

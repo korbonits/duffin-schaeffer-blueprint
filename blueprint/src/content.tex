@@ -578,9 +578,25 @@ independently upstreamable and none depends on the rest of the project.
 
 \begin{lemma}[Divisor bound]
   \label{lem:divisor-bound}
-  \notready
-  $d(n) = O_{\varepsilon}(n^{\varepsilon})$. Lean: \texttt{divisor\_bound}.
+  \lean{DuffinSchaeffer.divisor_bound}
+  \leanok
+  $d(n) = O_{\varepsilon}(n^{\varepsilon})$.
 \end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} The prime-by-prime bound is
+  $a + 1 \leq w(p) \cdot (p^a)^{\varepsilon}$. Once $p^{\varepsilon} \geq 2$ one may take
+  $w(p) = 1$, since $a + 1 \leq 2^a \leq (p^{\varepsilon})^a$; below that threshold take
+  $w(p) = C_{\varepsilon}$, the constant of \texttt{exists\_linear\_le\_pow} at
+  $r = 2^{\varepsilon}$, which works uniformly in $p$ because $p \geq 2$. Only primes
+  below the threshold contribute a factor and there are at most $P$ of them, so the
+  constant is $C_{\varepsilon}^{P}$.
+
+  The analytic input is that linear is dominated by exponential with an explicit
+  constant, which is obtained by noting $(a+1)/r^a \to 0$ and taking the supremum of a
+  convergent sequence.
+\end{proof}
 
 \begin{lemma}[Dirichlet swap]
   \label{lem:dirichlet-swap}
