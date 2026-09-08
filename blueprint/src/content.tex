@@ -678,23 +678,48 @@ independently upstreamable and none depends on the rest of the project.
 \chapter{Overlap estimates}
 \label{chap:overlap}
 
+\begin{definition}[The objects of \S5]
+  \label{def:section5}
+  \lean{DuffinSchaeffer.interactionScale, DuffinSchaeffer.LSum, DuffinSchaeffer.badPairs,
+        DuffinSchaeffer.vertexWeight}
+  \leanok
+  \textbf{Transcribed.} $M(q,r) = \max(r\ps(q), q\ps(r))$ (Lemma 5.3);
+  $L_t(a,b) = \sum_{p \mid ab/\gcd(a,b)^2,\ p \geq t} 1/p$ (5.1);
+  $E_t = \{(v,w) \in (\Z \cap [X,Y])^2 : \gcd(v,w) \geq M(v,w)/t,\ L_t(v,w) \geq 10\}$
+  (5.2); and the vertex weight $\mu(q) = \varphi(q)\ps(q)/q$.
+\end{definition}
+
 \begin{lemma}[Pollington--Vaughan]
   \label{lem:pollington-vaughan}
   \notready
-  \uses{lem:volume-setaq, lem:mertens-three}
-  \textbf{TRANSCRIBE} --- Pollington and Vaughan, \emph{Mathematika} 37 (1990),
-  190--200; quoted in the paper's \S2.
-
-  For $q \neq r$ with $d = \gcd(q,r)$, the overlap $\Leb(\Aq \cap A_r)$ exceeds the
-  independent prediction $\Leb(\Aq)\Leb(A_r)$ by a factor controlled by a product
-  $\prod (1-1/p)^{-1}$ over the primes $p$ dividing $qr/d^2$ that exceed a threshold
-  depending on $q$, $r$ and $\ps$.
-
-  The threshold carries normalisations that must be copied from the source. It is
-  deliberately not stated in Lean until then: with the threshold taken too large the
-  statement is false, with it taken too small the statement is useless, and neither
-  error is visible downstream until the whole chapter has been built on it.
+  \uses{def:section5, lem:volume-setaq}
+  \textbf{External citation} --- the paper's Lemma 5.3, attributed to
+  [Pollington and Vaughan, \emph{Mathematika} 37 (1990), pp.\ 195--196] and not proved
+  there. For $q \neq r$,
+  \[ \frac{\Leb(\Aq \cap A_r)}{\Leb(\Aq)\Leb(A_r)} \ll
+     \mathbf{1}[\gcd(q,r) \leq M(q,r)]
+     \prod_{\substack{p \mid qr/\gcd(q,r)^2 \\ p > M(q,r)/\gcd(q,r)}}
+     \left(1 + \tfrac1p\right). \]
 \end{lemma}
+
+\begin{remark}
+  This lemma is now stated in Lean (\texttt{pollington\_vaughan}); an earlier draft
+  deliberately refused to, on the grounds that guessing it would be worse than leaving a
+  gap. That was the right call. The guess would have had a $\ps$-dependent threshold
+  instead of $M(q,r)/\gcd(q,r)$, factors $(1-1/p)^{-1}$ instead of $(1+1/p)$, and no
+  indicator at all --- so it would have missed that the sets are essentially disjoint
+  below the interaction scale.
+\end{remark}
+
+\begin{theorem}[Second moment bound]
+  \label{thm:second-moment}
+  \notready
+  \uses{def:section5}
+  \textbf{Transcribed} --- Proposition 5.4. For $Y \geq X \geq 1$ with
+  $\sum_{X \leq q \leq Y}\mu(q) \in [1,2]$ and $t \geq 1$,
+  \[ \sum_{(v,w) \in E_t} \mu(v)\mu(w) \ll \frac1t . \]
+  Equivalent to Proposition 6.3 (Theorem \ref{thm:edge-bound}); sections 7--14 prove it.
+\end{theorem}
 
 \begin{theorem}[Selection of quasi-independent denominators]
   \label{thm:overlap-core}
