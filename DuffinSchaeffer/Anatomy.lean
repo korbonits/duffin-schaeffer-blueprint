@@ -9,10 +9,12 @@
 import DuffinSchaeffer.Basic
 import Mathlib.NumberTheory.SmoothNumbers
 import Mathlib.NumberTheory.ArithmeticFunction.Misc
+import Mathlib.NumberTheory.ArithmeticFunction.VonMangoldt
+import Mathlib.NumberTheory.Chebyshev
 import Mathlib.Data.Nat.Factorization.Basic
 
 open Filter Asymptotics Finset
-open scoped BigOperators Nat
+open scoped BigOperators Nat ArithmeticFunction
 
 namespace DuffinSchaeffer
 
@@ -105,6 +107,54 @@ theorem sum_totient_div_self :
   · refine le_trans ?_ (le_sum_totient_div_self hn)
     linarith
   · simpa using sum_totient_div_self_le n
+
+/-! ### Toward Mertens
+
+Mertens' theorems are not yet proved, but the first reduction is, and it is the step the
+Dirichlet swap was built for. Summing von Mangoldt over divisors gives `log`
+(`vonMangoldt_sum`), so the swap turns `∑_{q ≤ n} log q` into `∑_{d ≤ n} ⌊n/d⌋ Λ(d)`;
+replacing `⌊n/d⌋` by `n/d` costs at most `ψ(n)`, which Chebyshev bounds by a constant
+times `n`. What remains for Mertens' first theorem is the other side of the identity,
+`∑_{q ≤ n} log q = n log n + O(n)`, i.e. Stirling. -/
+
+theorem sum_log_eq_sum_vonMangoldt (n : ℕ) :
+    ∑ q ∈ Ioc 0 n, Real.log q = ∑ d ∈ Ioc 0 n, ((n / d : ℕ) : ℝ) * Λ d := by
+  rw [← sum_sum_divisors n fun d => Λ d]
+  exact Finset.sum_congr rfl fun q _ => ArithmeticFunction.vonMangoldt_sum.symm
+
+theorem sum_vonMangoldt_eq_psi (n : ℕ) : ∑ d ∈ Ioc 0 n, Λ d = Chebyshev.psi n := by
+  rw [Chebyshev.psi_eq_sum_Icc, Nat.floor_natCast]
+  refine Finset.sum_subset (fun x hx => ?_) (fun x hx hxn => ?_)
+  · simp only [Finset.mem_Ioc, Finset.mem_Icc] at *
+    omega
+  · simp only [Finset.mem_Ioc, Finset.mem_Icc] at hx hxn
+    have : x = 0 := by omega
+    simp [this]
+
+theorem sum_vonMangoldt_le (n : ℕ) : ∑ d ∈ Ioc 0 n, Λ d ≤ (Real.log 4 + 4) * n := by
+  rw [sum_vonMangoldt_eq_psi]
+  exact Chebyshev.psi_le_const_mul_self (by positivity)
+
+/-- **The first reduction toward Mertens.** `∑_{q ≤ n} log q = n ∑_{d ≤ n} Λ(d)/d + O(n)`,
+with the explicit constant `log 4 + 4` from Chebyshev. -/
+theorem abs_sum_log_sub_le (n : ℕ) :
+    |∑ q ∈ Ioc 0 n, Real.log q - n * ∑ d ∈ Ioc 0 n, Λ d / d| ≤ (Real.log 4 + 4) * n := by
+  rw [sum_log_eq_sum_vonMangoldt, Finset.mul_sum, ← Finset.sum_sub_distrib]
+  refine le_trans (Finset.abs_sum_le_sum_abs _ _) (le_trans (Finset.sum_le_sum ?_)
+    (sum_vonMangoldt_le n))
+  intro d hd
+  have hd0 : 0 < d := (Finset.mem_Ioc.mp hd).1
+  have hdR : (0 : ℝ) < d := by exact_mod_cast hd0
+  have hfl : ((n / d : ℕ) : ℝ) ≤ (n : ℝ) / d := Nat.cast_div_le
+  have hfl' : (n : ℝ) / d ≤ ((n / d : ℕ) : ℝ) + 1 := by
+    rw [div_le_iff₀ hdR]
+    have : n < (n / d + 1) * d := (Nat.div_lt_iff_lt_mul hd0).mp (Nat.lt_succ_self _)
+    exact_mod_cast le_of_lt (by exact_mod_cast this)
+  have hΛ : (0 : ℝ) ≤ Λ d := ArithmeticFunction.vonMangoldt_nonneg
+  have : ((n / d : ℕ) : ℝ) * Λ d - (n : ℝ) * (Λ d / d) = (((n / d : ℕ) : ℝ) - (n : ℝ) / d) * Λ d := by
+    field_simp
+  rw [this, abs_mul, abs_of_nonneg hΛ]
+  exact mul_le_of_le_one_left hΛ (abs_le.mpr ⟨by linarith, by linarith⟩)
 
 /-! ### Still open -/
 

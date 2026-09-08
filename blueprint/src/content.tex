@@ -561,11 +561,47 @@ Nothing in this chapter is due to Koukoulopoulos and Maynard; it is the standard
 toolkit their argument assumes, and Mathlib does not have it. Every node is
 independently upstreamable and none depends on the rest of the project.
 
+\begin{lemma}[First reduction toward Mertens]
+  \label{lem:mertens-reduction}
+  \lean{DuffinSchaeffer.abs_sum_log_sub_le}
+  \leanok
+  \uses{lem:dirichlet-swap}
+  $\left| \sum_{q \leq n} \log q - n \sum_{d \leq n} \Lambda(d)/d \right|
+   \leq (\log 4 + 4)\, n$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} This is the step the Dirichlet swap (Lemma \ref{lem:dirichlet-swap})
+  was built for. Summing von Mangoldt over divisors gives $\log$
+  (Mathlib's \texttt{vonMangoldt\_sum}), so the swap turns $\sum_{q \leq n} \log q$ into
+  $\sum_{d \leq n} \lfloor n/d \rfloor \Lambda(d)$. Replacing $\lfloor n/d \rfloor$ by
+  $n/d$ costs at most $\sum_{d \le n} \Lambda(d) = \psi(n)$, and Mathlib's Chebyshev bound
+  \texttt{psi\_le\_const\_mul\_self} gives $\psi(n) \le (\log 4 + 4)n$.
+\end{proof}
+
+\begin{lemma}[Mertens' first theorem]
+  \label{lem:mertens-one}
+  \notready
+  \uses{lem:mertens-reduction}
+  $\sum_{d \leq n} \Lambda(d)/d = \log n + O(1)$.
+\end{lemma}
+
+\begin{proof}
+  What is missing is the other side of the identity of Lemma
+  \ref{lem:mertens-reduction}, namely $\sum_{q \leq n} \log q = n\log n + O(n)$ --- that
+  is, Stirling. Mathlib has \texttt{Stirling.stirlingSeq} and its convergence, so this is
+  assembly rather than invention, but it is not done.
+\end{proof}
+
 \begin{lemma}[Mertens' second theorem]
   \label{lem:mertens-two}
   \notready
+  \uses{lem:mertens-one}
   $\sum_{p < n} 1/p = \log\log n + M + O(1/\log n)$.
-  Lean: \texttt{mertens\_second}.
+
+  From Lemma \ref{lem:mertens-one} by Abel summation, for which Mathlib has
+  \texttt{NumberTheory/AbelSummation}. Lean: \texttt{mertens\_second}.
 \end{lemma}
 
 \begin{lemma}[Mertens' third theorem]
