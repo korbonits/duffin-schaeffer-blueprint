@@ -730,52 +730,82 @@ estimate admits a modification strictly increasing its quality. Quality is bound
 above, so the iteration terminates, and the terminal graphs are exactly those for
 which the estimate holds.
 
-\begin{definition}[GCD graph]
+\begin{definition}[Bipartite GCD graph]
   \label{def:gcdgraph}
   \lean{DuffinSchaeffer.GCDGraph}
   \leanok
-  A finite vertex set $V$ of denominators, a symmetric irreflexive edge set $E$ on it,
-  a finite set $P$ of primes, and for each $p \in P$ exponents $f_p, g_p$ with
-  $g_p \leq f_p$ such that $p^{f_p} \| v$ for every $v \in V$ and
-  $p^{g_p} \| \gcd(v,w)$ for every edge $(v,w)$.
+  \textbf{Transcribed} --- paper Definition 6.1. A septuple $(\mu, V, W, E, P, f, g)$
+  where $\mu$ is a measure on $\N$ (extended to pairs by
+  $\mu(N) = \sum_{(n_1,n_2)\in N}\mu(n_1)\mu(n_2)$), $V, W$ are finite sets of positive
+  integers, $E \subseteq V \times W$, $P$ is a set of primes, and
+  $f, g : P \to \Z_{\geq 0}$ satisfy, for every $p \in P$:
+  \begin{enumerate}
+    \item $p^{f(p)} \mid v$ for all $v \in V$, and $p^{g(p)} \mid w$ for all $w \in W$;
+    \item if $(v,w) \in E$ then $p^{\min(f(p),g(p))} \,\|\, \gcd(v,w)$;
+    \item if $f(p) \neq g(p)$ then $p^{f(p)} \,\|\, v$ for all $v \in V$ and
+      $p^{g(p)} \,\|\, w$ for all $w \in W$.
+  \end{enumerate}
 \end{definition}
+
+\begin{remark}
+  An earlier draft of this blueprint carried a version of this definition written from
+  memory. Every substantive feature of it was wrong: the graphs are \emph{bipartite}
+  rather than having one vertex set with a symmetric edge relation; a \emph{measure} is
+  part of the data, and the entire argument is about the weighted edge density $\mu(E)$;
+  condition (1) is divisibility, not exact divisibility; condition (2) involves
+  $\min(f,g)$, not $g$; condition (3) --- exactness, but \emph{only} when
+  $f(p) \neq g(p)$ --- was missing altogether; and the guess imposed $g \leq f$, which the
+  paper does not.
+
+  This is what the \textbf{TRANSCRIBE} marks are for. Anything built on the earlier
+  structure would have been unsound in a way invisible until someone opened the paper.
+\end{remark}
+
+\begin{definition}[Non-trivial GCD graph, GCD subgraph]
+  \label{def:gcdsubgraph}
+  \lean{DuffinSchaeffer.GCDGraph.Nontrivial, DuffinSchaeffer.GCDGraph.IsSubgraph}
+  \leanok
+  \uses{def:gcdgraph}
+  \textbf{Transcribed} --- Definitions 6.2 and 6.4. $G$ is non-trivial when $\mu(E) > 0$;
+  and $G' \preccurlyeq G$ when $\mu' = \mu$, $V' \subseteq V$, $W' \subseteq W$,
+  $E' \subseteq E$, $P' \supseteq P$ and $f', g'$ restrict to $f, g$ on $P$ --- note the
+  set of primes \emph{grows}, since a subgraph carries more divisibility information.
+\end{definition}
+
+\begin{theorem}[Edge set bound]
+  \label{thm:edge-bound}
+  \notready
+  \uses{def:gcdgraph}
+  \textbf{Transcribed} --- Proposition 6.3. For $\mu(v) = \psi(v)\varphi(v)/v$ and
+  $V$ with $0 < \mu(V) \ll 1$, a GCD graph with trivial set of primes and edge set
+  contained in $E_t$ satisfies $\mu(E) \ll 1/t$.
+
+  This is the statement the whole of sections 7--14 exists to prove, and it is equivalent
+  to Proposition 5.4. Its definitions are now transcribed; its proof is not.
+\end{theorem}
 
 \begin{definition}[Quality]
   \label{def:quality}
   \notready
   \uses{def:gcdgraph}
-  \textbf{TRANSCRIBE} --- paper \S3.
-
-  A numerical invariant $\quality(\gcdgraph)$ of a GCD graph, built from the edge
-  density and the exponents $f_p, g_p$. The explicit normalisation must be copied from
-  the paper; the entire argument is an optimisation of this quantity, so a
-  reconstructed formula would be undetectably wrong.
+  \textbf{TRANSCRIBE} --- paper \S7. The numerical invariant of a GCD graph that the
+  compression argument increases at each step. Not yet transcribed.
 \end{definition}
 
-\begin{lemma}[Quality is bounded]
-  \label{lem:quality-bounded}
-  \notready
-  \uses{def:quality}
-  \textbf{TRANSCRIBE} --- paper \S3. This is what makes the iteration terminate.
-\end{lemma}
-
-\begin{lemma}[Graph operations]
+\begin{lemma}[The iterative propositions]
   \label{lem:gcd-operations}
   \notready
-  \uses{def:quality}
-  \textbf{TRANSCRIBE} --- paper \S\S5--9. The catalogue of modifications, each
-  shown to increase quality: passing to an induced subgraph on a large vertex subset,
-  enlarging $P$ and refining $f$ and $g$ along a new prime, and the compression step
-  that removes vertices of unbalanced degree.
+  \uses{def:quality, def:gcdsubgraph}
+  \textbf{TRANSCRIBE} --- paper \S8 reduces Proposition 7.1 to three iterative
+  propositions (8.1, 8.2, 8.3), proved in \S\S12--14, with supporting lemmas 8.4 and 8.5
+  proved in \S\S9--10 and preparatory material in \S11.
 \end{lemma}
 
 \begin{theorem}[The iteration]
   \label{thm:gcd-iteration}
   \notready
-  \uses{lem:quality-bounded, lem:gcd-operations, lem:divisor-bound, lem:mertens-two}
-  \textbf{TRANSCRIBE} --- paper \S10. A GCD graph of maximal quality has the structure
-  needed for the overlap estimate; iterating the operations of Lemma
-  \ref{lem:gcd-operations} from an arbitrary graph reaches one.
+  \uses{lem:gcd-operations, thm:edge-bound}
+  \textbf{TRANSCRIBE} --- paper \S7, Proposition 7.1: reduction to a good GCD subgraph.
 \end{theorem}
 
 \chapter{Assembly}
