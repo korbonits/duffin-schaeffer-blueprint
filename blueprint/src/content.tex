@@ -528,32 +528,30 @@ own source, and closing it is a contribution to Mathlib independent of this proj
 
 \begin{proposition}[Divergence Borel--Cantelli, quasi-independent form]
   \label{prop:quasi-bc}
-  \notready
-  \uses{prop:quasi-bc-escaping}
-  As above, but assuming only that the first moments $\sum_{i \in S_n} \mu(A_i)$ tend to
-  infinity, with no escape hypothesis.
+  \lean{DuffinSchaeffer.measure_infinite_pos_of_overlap}
+  \leanok
+  \uses{lem:chung-erdos}
+  As in Proposition \ref{prop:quasi-bc-escaping}, but assuming only that the first moments
+  $\sum_{i \in S_n} \mu(A_i)$ tend to infinity, with no escape hypothesis. The conclusion
+  is that the set of points lying in infinitely many $A_i$ has \emph{positive} measure.
 \end{proposition}
 
 \begin{proof}
-  The reduction to Proposition \ref{prop:quasi-bc-escaping} is worth writing down,
-  because the escape hypothesis is not obviously removable.
+  \leanok
+  \textbf{Proved.} Note the conclusion: Proposition \ref{prop:quasi-bc-escaping} gives the
+  sharp constant $C^{-1}$, while here the bound degrades to $(4C)^{-1}$, so the statement
+  is phrased as positivity. That is all any consumer needs --- Proposition
+  \ref{prop:positive-suffices} turns any positive lower bound into $1$, and the whole
+  development is arranged so that no constant is ever computed.
 
-  Fix a finite $t$ and put $S_n' = S_n \setminus t$. The overlap bound for $S_n'$ is
-  inherited (the double sum only shrinks), and with $x = \sum_{i \in S_n'} \mu(A_i)$ and
-  $k = \#t$ we have $\sum_{i \in S_n} \mu(A_i) \leq x + k$, so Chung--Erd\H{o}s on
-  $S_n'$ gives
-  \[ x^2 \leq M \cdot C \cdot (x+k)^2, \qquad M = \mu\Big(\bigcup_{i \notin t} A_i\Big). \]
-  Since $x \to \infty$ and $k$ is fixed, $(x/(x+k))^2 \to 1$, so $MC \geq 1$, i.e.
-  $C^{-1} \leq M$. Then intersect over $t$ as before.
-
-  The awkwardness is entirely $\mathbb{R}_{\geq 0}^{\infty}$: the ratio manipulation
-  wants division and a limit, and every quantity here is finite, so the sensible move is
-  to pass to $\mathbb{R}_{\geq 0}$ first.
-
-  Alternatively, if Theorem \ref{thm:overlap-core} can be strengthened to produce
-  escaping $S_n$ --- Koukoulopoulos and Maynard select denominators from ranges tending
-  to infinity, so it should --- this node is not needed at all. That has not been checked
-  against the paper.
+  The weakening is what makes the proof elementary. Fix $k$, let $t$ be the initial
+  segment up to $k$, and put $K = \sum_{i \in t} \mu(A_i)$, a fixed finite quantity. The
+  sharp version wants $x^2 \leq MC(x+K)^2$ with $x = \sum_{i \in S_n \setminus t} \mu(A_i)
+  \to \infty$, hence a ratio and a limit, both awkward in
+  $\mathbb{R}_{\geq 0}^{\infty}$. Settling for a factor of $4$ removes them: choose $n$
+  with $\sum_{i \in S_n} \mu(A_i) \geq 2K + 1$, which forces $K \leq x$ and hence
+  $\sum_{i \in S_n} \mu(A_i) \leq 2x$; Chung--Erd\H{o}s on $S_n \setminus t$ then gives
+  $x^2 \leq 4 M C x^2$ directly, and $x$ cancels.
 \end{proof}
 
 \chapter{Anatomy of integers}

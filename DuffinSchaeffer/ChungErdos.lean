@@ -169,29 +169,117 @@ theorem measure_infinite_pos_of_escaping (μ : Measure Ω) [IsProbabilityMeasure
     (tendsto_measure_iInter_atTop (fun k => (hXmeas k).nullMeasurableSet) hXanti
       ⟨1, measure_ne_top _ _⟩) hXge
 
-/-- **Divergence Borel-Cantelli, quasi-independent form**, without the escape hypothesis.
+theorem sum_le_sum_sdiff_add_sum {ι : Type*} [DecidableEq ι] (s t : Finset ι)
+    (f : ι → ℝ≥0∞) : ∑ i ∈ s, f i ≤ ∑ i ∈ s \ t, f i + ∑ i ∈ t, f i := by
+  rw [← Finset.sum_filter_add_sum_filter_not s (fun i => i ∈ t) f, add_comm]
+  refine add_le_add (le_of_eq (Finset.sum_congr (Finset.sdiff_eq_filter s t).symm
+    fun _ _ => rfl)) ?_
+  exact Finset.sum_le_sum_of_subset fun x hx => (Finset.mem_filter.mp hx).2
 
-Still open. It reduces to `measure_infinite_pos_of_escaping` and the reduction is worth
-recording, because the escape hypothesis is not obviously removable and the argument is
-the only delicate point.
+/-- **Divergence Borel-Cantelli, quasi-independent form**, with no escape hypothesis.
 
-Fix a finite `t` and put `S' n = S n \ t`. The overlap bound for `S' n` is inherited from
-`S n` (the double sum only shrinks), and writing `x = ∑_{S' n} μ(A i)` and `k = #t` we
-have `∑_{S n} μ(A i) ≤ x + k`, so Chung-Erdős on `S' n` gives
+Note the conclusion. `measure_infinite_pos_of_escaping` gives the sharp constant `C⁻¹`;
+here the bound degrades to `(4C)⁻¹`, so the statement is phrased as positivity, which is
+all any consumer needs -- Gallagher's zero-one law turns any positive lower bound into
+`1`, and the whole development is arranged so that no constant is ever computed.
 
-  `x² ≤ M · C · (x + k)²`,   `M = μ (⋃_{i ∉ t} A i)`.
-
-Since `∑_{S n} μ(A i) → ∞` and `k` is fixed, `x → ∞`, so `(x/(x+k))² → 1` and therefore
-`M · C ≥ 1`, i.e. `C⁻¹ ≤ M`. Then intersect over `t` as in the escaping case.
-
-The awkwardness is entirely `ℝ≥0∞`: the ratio manipulation wants division and a limit,
-both of which are more comfortable after moving to `ℝ≥0`, and every quantity here is
-finite so that move is available. -/
-proof_wanted measure_infinite_pos_of_overlap (μ : Measure Ω) [IsProbabilityMeasure μ]
+That weakening is what makes the proof elementary. The sharp version wants
+`x²  ≤ M C (x + K)²` with `x → ∞`, hence a ratio and a limit, both awkward in `ℝ≥0∞`.
+Settling for a factor of `4` removes them: choose `n` with the first moment over `S n` at
+least twice the fixed mass sitting on the discarded initial segment, and the discarded
+part can then be absorbed by a factor of `2` before squaring. -/
+theorem measure_infinite_pos_of_overlap (μ : Measure Ω) [IsProbabilityMeasure μ]
     (A : ℕ+ → Set Ω) (hA : ∀ i, MeasurableSet (A i)) (C : ℝ≥0∞) (hC : C ≠ 0) (hC' : C ≠ ⊤)
     (S : ℕ → Finset ℕ+)
     (hdiv : Tendsto (fun n ↦ ∑ q ∈ S n, μ (A q)) atTop atTop)
     (hoverlap : ∀ n, ∑ q ∈ S n, ∑ r ∈ S n, μ (A q ∩ A r) ≤ C * (∑ q ∈ S n, μ (A q)) ^ 2) :
-    C⁻¹ ≤ μ {x | {i : ℕ+ | x ∈ A i}.Infinite}
+    0 < μ {x | {i : ℕ+ | x ∈ A i}.Infinite} := by
+  classical
+  set X : ℕ+ → Set Ω := fun k => ⋃ i, ⋃ (_ : k < i), A i with hXdef
+  have hXmeas : ∀ k, MeasurableSet (X k) := fun k =>
+    MeasurableSet.iUnion fun i => MeasurableSet.iUnion fun _ => hA i
+  have hXanti : Antitone X := by
+    intro k l hkl x hx
+    simp only [hXdef, Set.mem_iUnion] at hx ⊢
+    obtain ⟨i, hi, hxi⟩ := hx
+    exact ⟨i, lt_of_le_of_lt hkl hi, hxi⟩
+  have hXint : (⋂ k, X k) = {x | {i : ℕ+ | x ∈ A i}.Infinite} := by
+    ext x
+    simp only [Set.mem_iInter, hXdef, Set.mem_iUnion, Set.mem_ofPred_eq, exists_prop]
+    constructor
+    · exact fun h => Set.infinite_of_forall_exists_gt fun k => by
+        obtain ⟨i, hi, hxi⟩ := h k; exact ⟨i, hxi, hi⟩
+    · intro h k
+      obtain ⟨i, hxi, hi⟩ := h.exists_gt k
+      exact ⟨i, hi, hxi⟩
+  have hCfour : (4 : ℝ≥0∞) * C ≠ ⊤ := ENNReal.mul_ne_top (by norm_num) hC'
+  have hXge : ∀ k, ((4 : ℝ≥0∞) * C)⁻¹ ≤ μ (X k) := by
+    intro k
+    set t : Finset ℕ+ := Finset.Iic k with htdef
+    set K : ℝ≥0∞ := ∑ i ∈ t, μ (A i) with hKdef
+    have hKtop : K ≠ ⊤ := (ENNReal.sum_lt_top.mpr fun q _ => measure_lt_top μ _).ne
+    -- pick `n` with the first moment at least `2K + 1`
+    obtain ⟨n, hn⟩ := (hdiv.eventually_ge_atTop (2 * K + 1)).exists
+    set y := ∑ q ∈ S n, μ (A q) with hydef
+    set x := ∑ q ∈ S n \ t, μ (A q) with hxdef
+    have hytop : y ≠ ⊤ := (ENNReal.sum_lt_top.mpr fun q _ => measure_lt_top μ _).ne
+    have hxtop : x ≠ ⊤ := (ENNReal.sum_lt_top.mpr fun q _ => measure_lt_top μ _).ne
+    have hyx : y ≤ x + K := sum_le_sum_sdiff_add_sum _ _ _
+    have hy2K : 2 * K + 1 ≤ y := hn
+    -- hence `y ≤ 2x`
+    have hy2x : y ≤ 2 * x := by
+      have hKy : K + K ≤ x + K + K := by gcongr; exact le_add_self
+      have : y + K ≤ x + K + K := by
+        calc y + K ≤ (x + K) + K := by gcongr
+          _ = x + K + K := rfl
+      -- from `2K + 1 ≤ y` and `y ≤ x + K` we get `K + 1 ≤ x`, so `y ≤ x + K ≤ 2x`
+      have hKx : K ≤ x := by
+        by_contra hlt
+        push Not at hlt
+        have : y < 2 * K + 1 := by
+          calc y ≤ x + K := hyx
+            _ < K + K := by gcongr
+            _ ≤ 2 * K + 1 := by rw [two_mul]; exact le_self_add
+        exact absurd hy2K (not_le.mpr this)
+      calc y ≤ x + K := hyx
+        _ ≤ x + x := by gcongr
+        _ = 2 * x := (two_mul x).symm
+    have hxpos : x ≠ 0 := by
+      intro h
+      rw [h] at hy2x
+      simp only [mul_zero, nonpos_iff_eq_zero] at hy2x
+      rw [hy2x] at hy2K
+      simp only [nonpos_iff_eq_zero, add_eq_zero, one_ne_zero, and_false] at hy2K
+    have hsub : (⋃ i ∈ S n \ t, A i) ⊆ X k := by
+      intro z hz
+      simp only [Set.mem_iUnion, exists_prop] at hz
+      obtain ⟨i, hiS, hzi⟩ := hz
+      simp only [hXdef, Set.mem_iUnion]
+      exact ⟨i, by simpa [htdef] using (Finset.mem_sdiff.mp hiS).2, hzi⟩
+    have hce := chung_erdos μ (S n \ t) A hA
+    have hkey : 1 * x ^ 2 ≤ (4 * (μ (X k) * C)) * x ^ 2 := by
+      rw [one_mul]
+      calc x ^ 2 ≤ μ (⋃ i ∈ S n \ t, A i) * ∑ q ∈ S n \ t, ∑ r ∈ S n \ t, μ (A q ∩ A r) := hce
+        _ ≤ μ (X k) * (C * y ^ 2) := by
+            refine mul_le_mul' (measure_mono hsub) (le_trans ?_ (hoverlap n))
+            calc ∑ q ∈ S n \ t, ∑ r ∈ S n \ t, μ (A q ∩ A r)
+                ≤ ∑ q ∈ S n \ t, ∑ r ∈ S n, μ (A q ∩ A r) :=
+                  Finset.sum_le_sum fun i _ => Finset.sum_le_sum_of_subset Finset.sdiff_subset
+              _ ≤ ∑ q ∈ S n, ∑ r ∈ S n, μ (A q ∩ A r) :=
+                  Finset.sum_le_sum_of_subset Finset.sdiff_subset
+        _ ≤ μ (X k) * (C * (2 * x) ^ 2) := by gcongr
+        _ = (4 * (μ (X k) * C)) * x ^ 2 := by ring
+    have h1 : (1 : ℝ≥0∞) ≤ 4 * (μ (X k) * C) :=
+      (ENNReal.mul_le_mul_iff_left (pow_ne_zero 2 hxpos) (by simpa using hxtop)).mp hkey
+    calc ((4 : ℝ≥0∞) * C)⁻¹ = 1 * (4 * C)⁻¹ := (one_mul _).symm
+      _ ≤ (4 * (μ (X k) * C)) * (4 * C)⁻¹ := by gcongr
+      _ = μ (X k) * ((4 * C) * (4 * C)⁻¹) := by ring
+      _ = μ (X k) := by
+          rw [ENNReal.mul_inv_cancel (by simp [hC]) hCfour, mul_one]
+  have hlim := ge_of_tendsto'
+    (tendsto_measure_iInter_atTop (fun k => (hXmeas k).nullMeasurableSet) hXanti
+      ⟨1, measure_ne_top _ _⟩) hXge
+  rw [← hXint]
+  exact lt_of_lt_of_le (ENNReal.inv_pos.mpr hCfour) hlim
 
 end DuffinSchaeffer
