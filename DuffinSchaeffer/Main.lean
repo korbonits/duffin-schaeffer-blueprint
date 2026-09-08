@@ -22,35 +22,92 @@ open scoped ENNReal NNReal Nat
 
 namespace DuffinSchaeffer
 
-/-- **TRANSCRIBE** -- paper §1. The reduction of Theorem 1 to `ψ ≤ 1/2`, in the case
-where the truncated series converges.
+/-! ### The reduction to `ψ ≤ 1/2`
 
-This gap was hidden inside the prose of Theorem 1's proof until the surrounding nodes
-were closed, so it is recorded here as a node of its own rather than left as a sentence.
+Transcribed from the paper, §5 (the proof of Theorem 1 assuming Proposition 5.4). An
+earlier version of this file guessed the reduction and guessed wrong: it used the
+truncation `min(ψ, 1/2)`. The paper splits `ψ` *additively by restriction* instead,
 
-The reduction one wants is: given `∑ ψ(q)φ(q)/q = ∞`, put `ψ' = min(ψ, 1/2)`; since
-`setA ψ' ⊆ setA ψ` (`setA_mono`), it is enough to run the main argument on `ψ'`. That
-works whenever `∑ ψ'(q)φ(q)/q = ∞`, and then nothing further is needed.
+  `ψ = ψ₁ + ψ₂`,  `ψ₁ = ψ · 1[ψ > 1/2]`,  `ψ₂ = ψ · 1[ψ ≤ 1/2]`,
 
-It can fail. Write `S = {q : ψ(q) > 1/2}`. If `∑ ψ'(q)φ(q)/q < ∞` then on `S` we have
-`ψ' = 1/2`, so `∑_{q ∈ S} φ(q)/q < ∞`, while off `S` we have `ψ' = ψ`, so the divergence
-must come entirely from `S`:
+which is a different function: where `ψ(q) = 5`, the truncation gives `1/2` but `ψ₂`
+gives `0`. That matters, because the two cases are then genuinely disjoint and the large
+one is a known theorem rather than something to be reconstructed. -/
 
-  `∑_{q ∈ S} ψ(q)φ(q)/q = ∞`  and  `∑_{q ∈ S} φ(q)/q < ∞`.
+/-- `ψ` restricted to where it exceeds `1/2`. -/
+noncomputable def psiLarge (ψ : ℕ+ → ℝ≥0) : ℕ+ → ℝ≥0 := fun q => if 1 / 2 < ψ q then ψ q else 0
 
-So `ψ` is unbounded along `S` in a weighted sense, and the truncated series carries none
-of the divergence. Whether `setA ψ` is full in that regime is not something the rest of
-this development settles: `ψ(q) ≥ q` infinitely often would give it immediately, since
-then `setAq ψ q = [0,1]`, but `ψ(q)` can be large without `ψ(q)/q` being large, and the
-counting bound `#(numerators q) = φ(q)` does not force a cover -- at `q = 6` the balls
-around `1/6` and `5/6` cover `[0,1]` only once `ψ(6) ≥ 2`.
+/-- `ψ` restricted to where it is at most `1/2`. -/
+noncomputable def psiSmall (ψ : ℕ+ → ℝ≥0) : ℕ+ → ℝ≥0 := fun q => if ψ q ≤ 1 / 2 then ψ q else 0
 
-The paper handles this; do not reconstruct it from memory. -/
-proof_wanted volume_setA_eq_one_of_untruncated (ψ : ℕ+ → ℝ≥0)
-    (hdiv : ¬ Summable fun q : ℕ+ ↦ (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / (q : ℝ))
-    (hconv : Summable fun q : ℕ+ ↦
-      ((min (ψ q) (1 / 2) : ℝ≥0) : ℝ) * (φ (q : ℕ) : ℝ) / (q : ℝ)) :
+theorem psiLarge_add_psiSmall (ψ : ℕ+ → ℝ≥0) (q : ℕ+) :
+    psiLarge ψ q + psiSmall ψ q = ψ q := by
+  simp only [psiLarge, psiSmall]
+  split_ifs with h1 h2 h2
+  · exact absurd h2 (not_le.mpr h1)
+  · exact add_zero _
+  · exact zero_add _
+  · exact absurd (not_lt.mp h1) h2
+
+theorem psiLarge_le (ψ : ℕ+ → ℝ≥0) (q : ℕ+) : psiLarge ψ q ≤ ψ q := by
+  simp only [psiLarge]; split_ifs; exacts [le_rfl, zero_le]
+
+theorem psiSmall_le (ψ : ℕ+ → ℝ≥0) (q : ℕ+) : psiSmall ψ q ≤ ψ q := by
+  simp only [psiSmall]; split_ifs; exacts [le_rfl, zero_le]
+
+theorem psiSmall_le_half (ψ : ℕ+ → ℝ≥0) (q : ℕ+) : ((psiSmall ψ q : ℝ≥0) : ℝ) ≤ 1 / 2 := by
+  simp only [psiSmall]
+  split_ifs with h
+  · exact_mod_cast h
+  · norm_num
+
+/-- **The Duffin-Schaeffer conjecture when `ψ` takes only large values**
+(paper, Lemma 5.2).
+
+This is an *external* input, not something the paper proves: it is deduced there from
+Theorem 2 of Pollington and Vaughan, *The k-dimensional Duffin and Schaeffer conjecture*,
+Mathematika 37 (1990), 190-200. Formalizing it means formalizing that paper's Theorem 2,
+which is a separate project.
+
+Isolating it is the point. What used to be a vague "the truncation reduction is not
+valid as stated" is now one provable reduction (`volume_setA_eq_one_of_untruncated`
+below) plus this one clearly-attributed citation. -/
+proof_wanted setA_of_large_values (ψ : ℕ+ → ℝ≥0)
+    (hlarge : ∀ q, ψ q = 0 ∨ (1 : ℝ) / 2 ≤ ψ q)
+    (hdiv : ¬ Summable fun q : ℕ+ ↦ (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / (q : ℝ)) :
     volume (setA ψ) = 1
+
+/-- **The reduction to `ψ ≤ 1/2`** (paper §5), in the case where the divergence comes
+from the large values.
+
+Proved, taking Lemma 5.2 as an explicit hypothesis rather than smuggling it in -- the
+same pattern as `setA_truncate` with the zero-one law. Given Lemma 5.2 the argument is
+two lines: `ψ₁` satisfies its hypothesis by construction, and `ψ₁ ≤ ψ` gives
+`setA ψ₁ ⊆ setA ψ`.
+
+So the case analysis of §5 is now fully accounted for. If the divergence survives
+restriction to `ψ ≤ 1/2` the main argument applies; otherwise it lives on `ψ₁` and this
+lemma applies. Nothing is left vague. -/
+theorem volume_setA_eq_one_of_psiLarge_diverges (ψ : ℕ+ → ℝ≥0)
+    (hLemma52 : ∀ ψ' : ℕ+ → ℝ≥0, (∀ q, ψ' q = 0 ∨ (1 : ℝ) / 2 ≤ (ψ' q : ℝ)) →
+      (¬ Summable fun q : ℕ+ ↦ (ψ' q : ℝ) * (φ (q : ℕ) : ℝ) / (q : ℝ)) →
+      volume (setA ψ') = 1)
+    (hdiv : ¬ Summable fun q : ℕ+ ↦
+      ((psiLarge ψ q : ℝ≥0) : ℝ) * (φ (q : ℕ) : ℝ) / (q : ℝ)) :
+    volume (setA ψ) = 1 := by
+  have hcond : ∀ q, psiLarge ψ q = 0 ∨ (1 : ℝ) / 2 ≤ ((psiLarge ψ q : ℝ≥0) : ℝ) := by
+    intro q
+    simp only [psiLarge]
+    split_ifs with h
+    · exact Or.inr (le_of_lt (by exact_mod_cast h))
+    · exact Or.inl rfl
+  have h1 := hLemma52 (psiLarge ψ) hcond hdiv
+  refine le_antisymm ?_ ?_
+  · calc volume (setA ψ) ≤ volume (Set.Icc (0 : ℝ) 1) :=
+          measure_mono fun x hx => hx.1
+      _ = 1 := by simp
+  · rw [← h1]
+    exact measure_mono (setA_mono (psiLarge_le ψ))
 
 /-- **The Duffin-Schaeffer conjecture** (Koukoulopoulos-Maynard, Theorem 1).
 If `∑ ψ(q) φ(q) / q` diverges then almost every `α ∈ [0,1]` has infinitely many

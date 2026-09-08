@@ -1,7 +1,9 @@
 /- GCD graphs: the machinery of Koukoulopoulos-Maynard.
 
-   This is the heart of the paper and the only part of the project with no
-   precedent in Mathlib or anywhere else. Sections 3-10 of the paper.
+   This is the heart of the paper and the only part of the project with no precedent in
+   Mathlib or anywhere else. Sections 6-14 of the paper -- an earlier draft of this file
+   guessed 3-10, which is wrong: section 3 is the proof outline, section 5 the
+   preliminaries, and the graphs themselves do not appear until section 6.
 
    The idea. The overlap `μ(A_q ∩ A_r)` exceeds the independent prediction
    `μ(A_q) μ(A_r)` by a factor governed by the small primes dividing `qr/gcd(q,r)²`.
@@ -18,8 +20,10 @@
    constraints; that shape is stable and safe to fix now. The quality function, the
    catalogue of graph operations and the iteration are NOT stated here, deliberately.
 
-   TRANSCRIBE. The quality function (paper §3) and each operation in the iteration
-   (§§5-9) must be copied from the paper before anything in this file can be used;
+   TRANSCRIBE. The quality function (paper §6, where the graphs are *bipartite* -- another
+   thing this file did not anticipate) and each operation in the iteration (§7 reduction to
+   a good GCD subgraph, §8 reduction to three iterative propositions, §§9-14 their proofs)
+   must be copied from the paper before anything in this file can be used;
    they involve explicit exponents and normalisations that must not be reconstructed
    from memory. Until then they live in the blueprint's LaTeX only, as
    `\notready` nodes with their section references. Writing a plausible-looking

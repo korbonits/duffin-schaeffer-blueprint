@@ -803,34 +803,43 @@ which the estimate holds.
   proved here. Lean: \texttt{theorem\_1}.
 \end{proof}
 
-\begin{lemma}[Reduction to $\ps \leq 1/2$, convergent case]
-  \label{lem:truncation-gap}
+\begin{lemma}[The Duffin--Schaeffer conjecture for large values]
+  \label{lem:large-values}
   \notready
-  \uses{lem:seta-mono}
-  \textbf{TRANSCRIBE} --- paper \S1.
+  \textbf{External citation.} If $\ps(q) \in \{0\} \cup [1/2,\infty)$ for every $q$ and
+  $\sum \ps(q)\varphi(q)/q$ diverges, then $\Leb(\A(\ps)) = 1$.
 
-  If $\sum \ps(q)\varphi(q)/q$ diverges while $\sum \min(\ps,1/2)(q)\varphi(q)/q$
-  converges, then $\Leb(\A(\ps)) = 1$.
+  This is Lemma 5.2 of the paper, and the paper does not prove it either: it is deduced
+  from Theorem 2 of Pollington and Vaughan, \emph{The $k$-dimensional Duffin and Schaeffer
+  conjecture}, Mathematika 37 (1990), 190--200. Formalizing it means formalizing that
+  paper's Theorem 2.
+\end{lemma}
+
+\begin{lemma}[Reduction to $\ps \leq 1/2$]
+  \label{lem:truncation-gap}
+  \lean{DuffinSchaeffer.volume_setA_eq_one_of_psiLarge_diverges}
+  \leanok
+  \uses{lem:seta-mono, lem:large-values}
+  Write $\ps = \ps_1 + \ps_2$ with $\ps_1 = \ps \cdot \mathbf{1}[\ps > 1/2]$ and
+  $\ps_2 = \ps \cdot \mathbf{1}[\ps \leq 1/2]$. If $\sum \ps_1(q)\varphi(q)/q$ diverges
+  then $\Leb(\A(\ps)) = 1$.
 \end{lemma}
 
 \begin{proof}
-  This gap sat inside the prose of Theorem \ref{thm:one} until the surrounding nodes were
-  closed, so it is recorded as a node rather than left as a sentence.
+  \leanok
+  \textbf{Proved}, taking Lemma \ref{lem:large-values} as an explicit hypothesis rather
+  than smuggling it in --- the same pattern as Lemma \ref{lem:truncate} with the zero-one
+  law. Given it, the argument is two lines: $\ps_1$ satisfies its hypothesis by
+  construction, and $\ps_1 \leq \ps$ gives $\A(\ps_1) \subseteq \A(\ps)$.
 
-  Write $S = \{q : \ps(q) > 1/2\}$. On $S$ the truncation equals $1/2$, so convergence of
-  the truncated series forces $\sum_{q \in S} \varphi(q)/q < \infty$; off $S$ the two
-  functions agree, so the divergence comes entirely from $S$:
-  \[ \sum_{q \in S} \frac{\ps(q)\varphi(q)}{q} = \infty, \qquad
-     \sum_{q \in S} \frac{\varphi(q)}{q} < \infty . \]
-  So $\ps$ is unbounded along $S$ in a weighted sense and the truncated series carries
-  none of the divergence.
-
-  Nothing in this development settles whether $\A(\ps)$ is full in that regime.
-  $\ps(q) \geq q$ infinitely often would give it at once, since then $\Aq = [0,1]$; but
-  $\ps(q)$ can be large without $\ps(q)/q$ being large, and the count $\varphi(q)$ of
-  admissible numerators does not force a cover --- at $q = 6$ the balls around $1/6$ and
-  $5/6$ cover $[0,1]$ only once $\ps(6) \geq 2$. Lean:
-  \texttt{volume\_setA\_eq\_one\_of\_untruncated}.
+  \emph{An earlier draft of this blueprint guessed this reduction and guessed wrong.} It
+  used the truncation $\min(\ps, 1/2)$; the paper (\S5) splits $\ps$ additively by
+  restriction instead, which is a different function --- where $\ps(q) = 5$ the truncation
+  gives $1/2$ but $\ps_2$ gives $0$. That matters, because with the restriction split the
+  two cases are genuinely disjoint and the large one is a known theorem
+  (Lemma \ref{lem:large-values}) rather than something to be reconstructed. The earlier
+  draft's worry --- that the divergence could hide in a regime nothing settles --- was
+  real, and this is how the paper disposes of it.
 \end{proof}
 
 \begin{theorem}[Theorem 2(a), convergence]

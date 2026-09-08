@@ -2,23 +2,33 @@
 
    Two things happen in this chapter.
 
-   The first is classical and is not due to Koukoulopoulos-Maynard: the
-   Pollington-Vaughan estimate bounding `μ(A_q ∩ A_r)` in terms of
-   `μ(A_q) μ(A_r)` and a product over the primes dividing `qr/gcd(q,r)²` above a
-   threshold depending on `q`, `r` and `ψ`. It is charted in the blueprint as a
-   `\notready` node rather than stated in Lean, because the threshold carries
-   normalisations that must be transcribed from the source (Pollington and Vaughan,
-   Mathematika 37 (1990), 190-200; quoted in the paper's §2) and a Lean statement got
-   slightly wrong would be worse than a visible gap.
+   The first is classical and is not due to Koukoulopoulos-Maynard: the Pollington-Vaughan
+   estimate, quoted there as Lemma 5.3 and attributed to [Pollington-Vaughan, Mathematika
+   37 (1990), pp. 195-196]. With `M(q,r) := max(r ψ(q), q ψ(r))` it reads, for `q ≠ r`,
 
-   The second is the interface the rest of the project consumes, and it *is* stated
-   here. Note carefully what it does and does not claim. It does not say the
-   denominators are quasi-independent -- over all finite sets that is false, and its
-   failure is the difficulty of the conjecture. It says that when the series
-   diverges one can *select* a sequence of finite sets of denominators, still carrying
-   divergent mass, on which the pair correlations are bounded by a constant times the
-   square of the first moment. Producing that selection is what the GCD graph
-   iteration is for. -/
+     λ(A_q ∩ A_r) / (λ(A_q) λ(A_r))  ≪  1[M(q,r) ≥ gcd(q,r)] ·
+        ∏ over p | qr/gcd(q,r)^2 with p > M(q,r)/gcd(q,r)  of  (1 + 1/p).
+
+   Note what an earlier draft of this file got wrong by guessing: the threshold is
+   `M(q,r)/gcd(q,r)`, not a `ψ`-dependent quantity pulled from memory; the product is of
+   `(1 + 1/p)`, not `(1 - 1/p)⁻¹`; and there is an indicator, so the two sets are simply
+   disjoint unless `M(q,r) ≥ gcd(q,r)`.
+
+   The second is the interface the rest of the project consumes, and it *is* stated here.
+   The paper's own form is sharper and concrete (Proposition 5.4): writing
+
+     L_t(a,b) := ∑ over p | ab/gcd(a,b)^2 with p ≥ t  of  1/p            (paper (5.1))
+     E_t := {(v,w) ∈ (Z ∩ [X,Y])^2 : gcd(v,w) ≥ M(v,w)/t and L_t(v,w) ≥ 10},
+
+   it asserts that for `Y ≥ X ≥ 1` with `∑_{X ≤ q ≤ Y} ψ(q)φ(q)/q ∈ [1,2]`,
+
+     ∑ over (v,w) ∈ E_t  of  (φ(v)ψ(v)/v)(φ(w)ψ(w)/w)  ≪  1/t.
+
+   The denominators are therefore taken from a window `[X, Y]` with `X → ∞` and `Y`
+   minimal making the first moment lie in `[1,2]`, and the conclusion needed is
+   `λ(⋃_{X ≤ q ≤ Y} A_q) ≫ 1` uniformly in `X`. In particular the index sets do escape
+   every initial segment, which settles a question raised earlier in this development --
+   though `measure_infinite_pos_of_overlap` no longer needs that. -/
 import DuffinSchaeffer.GCDGraph
 import DuffinSchaeffer.Anatomy
 
