@@ -740,11 +740,47 @@ which the estimate holds.
 \end{theorem}
 
 \begin{proof}
-  Truncate to $\ps \leq 1/2$ by Lemma \ref{lem:truncate}. Lemma \ref{lem:divergence}
-  gives $\sum \Leb(\Aq) = \infty$; Theorem \ref{thm:overlap-core} supplies the sets
-  $S_n$ and the constant $C$; Proposition \ref{prop:quasi-bc} gives
-  $\Leb(\A(\ps)) \geq C^{-1} > 0$ via Lemma \ref{lem:seta-limsup}; Proposition
-  \ref{prop:positive-suffices} upgrades it to $1$. Lean: \texttt{theorem\_1}.
+  \uses{lem:truncation-gap}
+  Put $\ps' = \min(\ps, 1/2)$, so $\A(\ps') \subseteq \A(\ps)$ by Lemma
+  \ref{lem:seta-mono}. If $\sum \ps'(q)\varphi(q)/q$ still diverges, the argument runs on
+  $\ps'$: Lemma \ref{lem:divergence} gives $\sum_q \Leb(A_q) = \infty$, Theorem
+  \ref{thm:overlap-core} supplies the sets $S_n$ and the constant $C$, Proposition
+  \ref{prop:quasi-bc} gives $\Leb(\A(\ps')) \geq C^{-1} > 0$ via Lemma
+  \ref{lem:seta-limsup}, and Proposition \ref{prop:positive-suffices} upgrades that to
+  $1$. Monotonicity finishes.
+
+  If it does not diverge, Lemma \ref{lem:truncation-gap} is what is needed, and it is not
+  proved here. Lean: \texttt{theorem\_1}.
+\end{proof}
+
+\begin{lemma}[Reduction to $\ps \leq 1/2$, convergent case]
+  \label{lem:truncation-gap}
+  \notready
+  \uses{lem:seta-mono}
+  \textbf{TRANSCRIBE} --- paper \S1.
+
+  If $\sum \ps(q)\varphi(q)/q$ diverges while $\sum \min(\ps,1/2)(q)\varphi(q)/q$
+  converges, then $\Leb(\A(\ps)) = 1$.
+\end{lemma}
+
+\begin{proof}
+  This gap sat inside the prose of Theorem \ref{thm:one} until the surrounding nodes were
+  closed, so it is recorded as a node rather than left as a sentence.
+
+  Write $S = \{q : \ps(q) > 1/2\}$. On $S$ the truncation equals $1/2$, so convergence of
+  the truncated series forces $\sum_{q \in S} \varphi(q)/q < \infty$; off $S$ the two
+  functions agree, so the divergence comes entirely from $S$:
+  \[ \sum_{q \in S} \frac{\ps(q)\varphi(q)}{q} = \infty, \qquad
+     \sum_{q \in S} \frac{\varphi(q)}{q} < \infty . \]
+  So $\ps$ is unbounded along $S$ in a weighted sense and the truncated series carries
+  none of the divergence.
+
+  Nothing in this development settles whether $\A(\ps)$ is full in that regime.
+  $\ps(q) \geq q$ infinitely often would give it at once, since then $\Aq = [0,1]$; but
+  $\ps(q)$ can be large without $\ps(q)/q$ being large, and the count $\varphi(q)$ of
+  admissible numerators does not force a cover --- at $q = 6$ the balls around $1/6$ and
+  $5/6$ cover $[0,1]$ only once $\ps(6) \geq 2$. Lean:
+  \texttt{volume\_setA\_eq\_one\_of\_untruncated}.
 \end{proof}
 
 \begin{theorem}[Theorem 2(a), convergence]

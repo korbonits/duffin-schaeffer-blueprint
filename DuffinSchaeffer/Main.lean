@@ -22,6 +22,36 @@ open scoped ENNReal NNReal Nat
 
 namespace DuffinSchaeffer
 
+/-- **TRANSCRIBE** -- paper §1. The reduction of Theorem 1 to `ψ ≤ 1/2`, in the case
+where the truncated series converges.
+
+This gap was hidden inside the prose of Theorem 1's proof until the surrounding nodes
+were closed, so it is recorded here as a node of its own rather than left as a sentence.
+
+The reduction one wants is: given `∑ ψ(q)φ(q)/q = ∞`, put `ψ' = min(ψ, 1/2)`; since
+`setA ψ' ⊆ setA ψ` (`setA_mono`), it is enough to run the main argument on `ψ'`. That
+works whenever `∑ ψ'(q)φ(q)/q = ∞`, and then nothing further is needed.
+
+It can fail. Write `S = {q : ψ(q) > 1/2}`. If `∑ ψ'(q)φ(q)/q < ∞` then on `S` we have
+`ψ' = 1/2`, so `∑_{q ∈ S} φ(q)/q < ∞`, while off `S` we have `ψ' = ψ`, so the divergence
+must come entirely from `S`:
+
+  `∑_{q ∈ S} ψ(q)φ(q)/q = ∞`  and  `∑_{q ∈ S} φ(q)/q < ∞`.
+
+So `ψ` is unbounded along `S` in a weighted sense, and the truncated series carries none
+of the divergence. Whether `setA ψ` is full in that regime is not something the rest of
+this development settles: `ψ(q) ≥ q` infinitely often would give it immediately, since
+then `setAq ψ q = [0,1]`, but `ψ(q)` can be large without `ψ(q)/q` being large, and the
+counting bound `#(numerators q) = φ(q)` does not force a cover -- at `q = 6` the balls
+around `1/6` and `5/6` cover `[0,1]` only once `ψ(6) ≥ 2`.
+
+The paper handles this; do not reconstruct it from memory. -/
+proof_wanted volume_setA_eq_one_of_untruncated (ψ : ℕ+ → ℝ≥0)
+    (hdiv : ¬ Summable fun q : ℕ+ ↦ (ψ q : ℝ) * (φ (q : ℕ) : ℝ) / (q : ℝ))
+    (hconv : Summable fun q : ℕ+ ↦
+      ((min (ψ q) (1 / 2) : ℝ≥0) : ℝ) * (φ (q : ℕ) : ℝ) / (q : ℝ)) :
+    volume (setA ψ) = 1
+
 /-- **The Duffin-Schaeffer conjecture** (Koukoulopoulos-Maynard, Theorem 1).
 If `∑ ψ(q) φ(q) / q` diverges then almost every `α ∈ [0,1]` has infinitely many
 coprime solutions to `|α - a/q| ≤ ψ(q)/q`. -/
