@@ -43,6 +43,30 @@ def stripPrimes (v : ℕ) (P : Finset ℕ) (e : ℕ → ℕ) : ℕ := v / ∏ p 
 /-- `ExactPow p k n` is the paper's `p ^ k ‖ n`: the exact power of `p` dividing `n`. -/
 def ExactPow (p k n : ℕ) : Prop := p ^ k ∣ n ∧ ¬ p ^ (k + 1) ∣ n
 
+theorem exactPow_iff_factorization {p k n : ℕ} (hp : p.Prime) (hn : n ≠ 0) :
+    ExactPow p k n ↔ n.factorization p = k := by
+  constructor
+  · rintro ⟨h1, h2⟩
+    have hle : k ≤ n.factorization p := (Nat.Prime.pow_dvd_iff_le_factorization hp hn).mp h1
+    have hlt : ¬ (k + 1 ≤ n.factorization p) := fun h =>
+      h2 ((Nat.Prime.pow_dvd_iff_le_factorization hp hn).mpr h)
+    omega
+  · intro h
+    refine ⟨(Nat.Prime.pow_dvd_iff_le_factorization hp hn).mpr (by omega), fun hc => ?_⟩
+    have := (Nat.Prime.pow_dvd_iff_le_factorization hp hn).mp hc
+    omega
+
+/-- If `p^k ‖ v` and `p^ℓ ‖ w` then `p^{min(k,ℓ)} ‖ gcd(v,w)`. This is the one real
+obligation in Definition 6.5(c): condition (ii) of Definition 6.1 for the newly added
+prime. -/
+theorem ExactPow.gcd {p k l v w : ℕ} (hp : p.Prime) (hv0 : v ≠ 0) (hw0 : w ≠ 0)
+    (hv : ExactPow p k v) (hw : ExactPow p l w) :
+    ExactPow p (min k l) (Nat.gcd v w) := by
+  have hg0 : Nat.gcd v w ≠ 0 := Nat.gcd_ne_zero_left hv0
+  rw [exactPow_iff_factorization hp hg0, Nat.factorization_gcd hv0 hw0]
+  simp only [Finsupp.inf_apply]
+  rw [(exactPow_iff_factorization hp hv0).mp hv, (exactPow_iff_factorization hp hw0).mp hw]
+
 /-- **Definition 6.1**: a bipartite GCD graph.
 
 The septuple `(μ, V, W, E, P, f, g)` of the paper. `f` and `g` are given here as total
@@ -186,6 +210,92 @@ from `R(G)`. -/
 noncomputable def LSumAvoiding (t : ℝ) (S : Set ℕ) (a b : ℕ) : ℝ :=
   ∑ p ∈ (coprimePart a b).primeFactors.filter (fun p : ℕ => t ≤ (p : ℝ) ∧ p ∉ S), (1 : ℝ) / p
 
+namespace GCDGraph
+
+open Classical in
+/-- The GCD subgraph induced on `V' ⊆ V` and `W' ⊆ W`, keeping the multiplicative data.
+Every lemma of section 11 produces a subgraph of exactly this shape, so it is worth having
+once: all seven conditions of Definition 6.1 are universally quantified over the vertex
+and edge sets, hence inherited by any restriction. -/
+noncomputable def induced (G : GCDGraph) (V' W' : Finset ℕ) (hV : V' ⊆ G.V)
+    (hW : W' ⊆ G.W) : GCDGraph where
+  μ := G.μ
+  V := V'
+  W := W'
+  E := G.edgesOn V' W'
+  P := G.P
+  f := G.f
+  g := G.g
+  V_pos := fun v hv => G.V_pos v (hV hv)
+  W_pos := fun w hw => G.W_pos w (hW hw)
+  E_subset := fun e he => by
+    simp only [edgesOn, Finset.mem_filter] at he
+    exact ⟨he.2.1, he.2.2⟩
+  P_prime := G.P_prime
+  f_dvd := fun p hp v hv => G.f_dvd p hp v (hV hv)
+  g_dvd := fun p hp w hw => G.g_dvd p hp w (hW hw)
+  edge_gcd := fun p hp e he => by
+    simp only [edgesOn, Finset.mem_filter] at he
+    exact G.edge_gcd p hp e he.1
+  f_exact := fun p hp hne v hv => G.f_exact p hp hne v (hV hv)
+  g_exact := fun p hp hne w hw => G.g_exact p hp hne w (hW hw)
+
+theorem induced_isSubgraph (G : GCDGraph) (V' W' : Finset ℕ) (hV : V' ⊆ G.V)
+    (hW : W' ⊆ G.W) : (G.induced V' W' hV hW).IsSubgraph G := by
+  refine ⟨rfl, hV, hW, ?_, Finset.Subset.refl _, fun _ _ => rfl, fun _ _ => rfl⟩
+  intro e he
+  simp only [induced, edgesOn, Finset.mem_filter] at he
+  exact he.1
+
+end GCDGraph
+
+/-! ### Section 11: preparatory lemmas on GCD graphs
+
+The six results §§12-14 draw on. `induced` above is the constructor they all use. -/
+
+/- **Lemma 11.1** (quality variation for special GCD subgraphs) is not stated yet. It is
+an exact identity for `q(G_{p^k,p^ℓ})/q(G)`, so it needs the Definition 6.5(c) constructor
+`G_{p^k,p^ℓ}`, which adds a prime to `P` and therefore has real proof obligations rather
+than inherited ones. `ExactPow.gcd` above is the substantive one; the rest is bookkeeping.
+
+An earlier draft of this file put a `proof_wanted ... : True` here as a placeholder. That
+is worse than nothing: it is a node that can never fail, occupying a slot in the count
+while asserting nothing. Better to leave the gap named in a comment. -/
+
+/-- **Lemma 11.2** (one subgraph must have limited quality loss). Pigeonhole across a
+product of partitions: some cell keeps a `(IJ)⁻¹⁰` share of the quality and a `(IJ)⁻¹`
+share of the density. -/
+proof_wanted pigeonhole_subgraph (G : GCDGraph) (hδ : 0 < G.edgeDensity)
+    {I J : ℕ} (Vs : Fin I → Finset ℕ) (Ws : Fin J → Finset ℕ)
+    (hVpart : G.V = Finset.univ.biUnion Vs)
+    (hWpart : G.W = Finset.univ.biUnion Ws) :
+    ∃ G' : GCDGraph, G'.IsSubgraph G ∧ 0 < G'.edgeDensity ∧
+      (∃ i, G'.V = Vs i) ∧ (∃ j, G'.W = Ws j) ∧
+      G.quality / ((I * J : ℕ) : ℝ) ^ (10 : ℕ) ≤ G'.quality ∧
+      (G.edgeDensity : ℝ) / ((I * J : ℕ) : ℝ) ≤ (G'.edgeDensity : ℝ)
+
+/-- **Lemma 11.5** (few edges between small sets). Either small sets carry few edges, or
+there is a quality-increasing subgraph on strictly smaller vertex sets. -/
+proof_wanted few_edges_between_small_sets (G : GCDGraph) (hδ : 0 < G.edgeDensity)
+    (η : ℝ) (hη : η ∈ Set.Ioo (0 : ℝ) 1) :
+    (∀ A ⊆ G.V, ∀ B ⊆ G.W,
+        (G.measureSet A : ℝ) ≤ η * (G.measureSet G.V : ℝ) →
+        (G.measureSet B : ℝ) ≤ η * (G.measureSet G.W : ℝ) →
+        (G.measurePairs (G.edgesOn A B) : ℝ) ≤ η ^ ((9 : ℝ) / 5) * (G.edgeMeasure : ℝ))
+      ∨ ∃ G' : GCDGraph, G'.IsSubgraph G ∧ G.quality < G'.quality ∧
+          G'.V ⊂ G.V ∧ G'.W ⊂ G.W
+
+/-- **Lemma 11.6** (subgraph with few edges between all small sets). Lemma 11.5 iterated;
+it terminates because the vertex sets strictly shrink. -/
+proof_wanted no_small_set_edges (G : GCDGraph) (hδ : 0 < G.edgeDensity)
+    (η : ℝ) (hη : η ∈ Set.Ioo (0 : ℝ) 1) :
+    ∃ G' : GCDGraph, G'.IsSubgraph G ∧ 0 < G'.edgeDensity ∧
+      G.quality ≤ G'.quality ∧ 0 < G.quality ∧
+      ∀ A ⊆ G'.V, ∀ B ⊆ G'.W,
+        (G'.measureSet A : ℝ) ≤ η * (G'.measureSet G'.V : ℝ) →
+        (G'.measureSet B : ℝ) ≤ η * (G'.measureSet G'.W : ℝ) →
+        (G'.measurePairs (G'.edgesOn A B) : ℝ) ≤ η ^ ((9 : ℝ) / 5) * (G'.edgeMeasure : ℝ)
+
 /-! ### Section 8: the three iterative propositions
 
 Proposition 7.1 is reduced in §8 to Propositions 8.1-8.3 together with Lemmas 8.4 and
@@ -270,6 +380,7 @@ proof_wanted exists_good_subgraph :
         (c * (G.edgeDensity : ℝ) * t ^ (50 : ℕ) * G.quality ≤ G'.quality ∨
           (c * G.quality ≤ G'.quality ∧
             ∀ e ∈ G'.E, 4 ≤ LSum t (stripPrimes e.1 G'.P G'.f) (stripPrimes e.2 G'.P G'.g)))
+
 
 /-- **Proposition 6.3** (edge set bound), the form in which the whole paper is stated.
 

@@ -840,6 +840,46 @@ which the estimate holds.
   location wrongly twice.
 \end{remark}
 
+\begin{lemma}[Induced GCD subgraphs]
+  \label{lem:induced}
+  \lean{DuffinSchaeffer.GCDGraph.induced, DuffinSchaeffer.GCDGraph.induced_isSubgraph}
+  \leanok
+  \uses{def:gcdgraph, def:gcdsubgraph}
+  Restricting a GCD graph to $V' \subseteq V$, $W' \subseteq W$, keeping the
+  multiplicative data and taking $E' = E \cap (V' \times W')$, gives a GCD subgraph.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} All seven conditions of Definition \ref{def:gcdgraph} are universally
+  quantified over the vertex and edge sets, so a restriction inherits them. Worth having
+  once: every lemma of \S11 produces a subgraph of exactly this shape.
+\end{proof}
+
+\begin{lemma}[Exact powers and gcd]
+  \label{lem:exactpow-gcd}
+  \lean{DuffinSchaeffer.ExactPow.gcd}
+  \leanok
+  If $p^k \,\|\, v$ and $p^\ell \,\|\, w$ then $p^{\min(k,\ell)} \,\|\, \gcd(v,w)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved}, via $v_p(\gcd(v,w)) = \min(v_p(v), v_p(w))$
+  (\texttt{Nat.factorization\_gcd}). This is the one genuine obligation in Definition
+  6.5(c): unlike Lemma \ref{lem:induced}, the special subgraph $G_{p^k,p^\ell}$ \emph{adds}
+  a prime to $P$, so condition (ii) of Definition \ref{def:gcdgraph} has to be checked for
+  it rather than inherited.
+\end{proof}
+
+\begin{lemma}[Quality variation for special subgraphs]
+  \label{lem:special-quality}
+  \notready
+  \uses{def:quality, lem:exactpow-gcd}
+  \textbf{Not yet stated} --- Lemma 11.1. An exact identity for
+  $q(G_{p^k,p^\ell})/q(G)$, which needs the Definition 6.5(c) constructor first.
+\end{lemma}
+
 \begin{proposition}[Iteration when $\mathcal{R}^\flat(G) \neq \emptyset$]
   \label{prop:iter1}
   \notready
