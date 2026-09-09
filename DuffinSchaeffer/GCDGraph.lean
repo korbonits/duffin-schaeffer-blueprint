@@ -180,6 +180,66 @@ noncomputable def quality (G : GCDGraph) : ℝ :=
 
 end GCDGraph
 
+open Classical in
+/-- `L_t` with the primes of a given set removed. Lemma 8.4 needs `L_t` restricted away
+from `R(G)`. -/
+noncomputable def LSumAvoiding (t : ℝ) (S : Set ℕ) (a b : ℕ) : ℝ :=
+  ∑ p ∈ (coprimePart a b).primeFactors.filter (fun p : ℕ => t ≤ (p : ℝ) ∧ p ∉ S), (1 : ℝ) / p
+
+/-! ### Section 8: the three iterative propositions
+
+Proposition 7.1 is reduced in §8 to Propositions 8.1-8.3 together with Lemmas 8.4 and
+8.5. Sections 12-14 prove the propositions, §§9-10 the lemmas, §11 the preparatory
+material. All five are transcribed below; none is proved. -/
+
+/-- **Proposition 8.1** (iteration when `R♭(G) ≠ ∅`). Adding a prime of `R♭(G)` to `P`
+buys a factor `2ᴺ`, where `N` counts the added primes at which `f` and `g` differ. -/
+proof_wanted iteration_of_Rflat_nonempty (G : GCDGraph) (hδ : 0 < G.edgeDensity)
+    (hR : ∀ p ∈ G.R, (10 : ℝ) ^ (2000 : ℕ) < p) (hflat : G.Rflat.Nonempty) :
+    ∃ G' : GCDGraph, G'.IsSubgraph G ∧ 0 < G'.edgeDensity ∧
+      G.P ⊂ G'.P ∧ ↑G'.P ⊆ ↑G.P ∪ G.R ∧ G'.R ⊂ G.R ∧
+      (2 : ℝ) ^ ((G'.P \ G.P).filter (fun p => G'.f p ≠ G'.g p)).card
+        ≤ min 1 ((G'.edgeDensity : ℝ) / (G.edgeDensity : ℝ)) * (G'.quality / G.quality)
+
+/-- **Proposition 8.2** (iteration when `R♭(G) = ∅`). Here one only asks that the quality
+not decrease. -/
+proof_wanted iteration_of_Rflat_empty (G : GCDGraph) (hδ : 0 < G.edgeDensity)
+    (hR : ∀ p ∈ G.R, (10 : ℝ) ^ (2000 : ℕ) < p) (hflat : G.Rflat = ∅)
+    (hsharp : G.Rsharp.Nonempty) :
+    ∃ G' : GCDGraph, G'.IsSubgraph G ∧
+      G.P ⊂ G'.P ∧ ↑G'.P ⊆ ↑G.P ∪ G.R ∧ G'.R ⊂ G.R ∧ G.quality ≤ G'.quality
+
+/-- **Proposition 8.3** (bounded quality loss for small primes). The small primes are
+dealt with once and for all, at a cost that is enormous but absolute. -/
+proof_wanted quality_loss_small_primes (G : GCDGraph) (hP : G.P = ∅)
+    (hδ : 0 < G.edgeDensity) :
+    ∃ G' : GCDGraph, G'.IsSubgraph G ∧ 0 < G'.edgeDensity ∧
+      (∀ p ∈ G'.P, (p : ℝ) ≤ (10 : ℝ) ^ (2000 : ℕ)) ∧
+      (∀ p ∈ G'.R, (10 : ℝ) ^ (2000 : ℕ) < p) ∧
+      (10 : ℝ) ^ (-((10 : ℝ) ^ (3000 : ℕ)))
+        ≤ min 1 ((G'.edgeDensity : ℝ) / (G.edgeDensity : ℝ)) * (G'.quality / G.quality)
+
+/-- **Lemma 8.4** (removing the effect of `R(G)` from `L_t`). Strengthens
+`L_t(v,w) ≥ 10` to a bound over primes outside `R(G)`, at the cost of half the quality. -/
+proof_wanted cosmetic_lemma (G : GCDGraph) (t : ℝ) (ht : 300 ≤ t)
+    (hδ : 0 < G.edgeDensity) (hflat : G.Rflat = ∅)
+    (hδt : (10 / t) ^ (50 : ℕ) ≤ (G.edgeDensity : ℝ))
+    (hE : ∀ e ∈ G.E, 10 ≤ LSum t e.1 e.2) :
+    ∃ G' : GCDGraph, G'.IsSubgraph G ∧ G'.V = G.V ∧ G'.W = G.W ∧ G'.P = G.P ∧
+      G.quality / 2 ≤ G'.quality ∧ 0 < G.quality ∧
+      ∀ e ∈ G'.E, 5 ≤ LSumAvoiding t G.R e.1 e.2
+
+/-- **Lemma 8.5** (subgraph with high-degree vertices). Regularises both sides without
+losing quality or density, which is how conclusions (b) and (c) of Proposition 7.1 are
+obtained from (a) and (d) alone. -/
+proof_wanted high_degree_subgraph (G : GCDGraph) (hδ : 0 < G.edgeDensity) :
+    ∃ G' : GCDGraph, G'.IsSubgraph G ∧ 0 < G'.edgeDensity ∧ G'.P = G.P ∧
+      G.quality ≤ G'.quality ∧ G.edgeDensity ≤ G'.edgeDensity ∧
+      (∀ v ∈ G'.V, 9 * (G'.edgeDensity : ℝ) / 10 * (G'.measureSet G'.W : ℝ)
+        ≤ (G'.measureSet (G'.neighborsV v) : ℝ)) ∧
+      (∀ w ∈ G'.W, 9 * (G'.edgeDensity : ℝ) / 10 * (G'.measureSet G'.V : ℝ)
+        ≤ (G'.measureSet (G'.neighborsW w) : ℝ))
+
 /-- **Proposition 7.1** (existence of a good GCD subgraph).
 
 The hinge of the whole argument: from a GCD graph with trivial prime set, every edge

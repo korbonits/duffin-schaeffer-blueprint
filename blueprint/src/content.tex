@@ -840,19 +840,62 @@ which the estimate holds.
   location wrongly twice.
 \end{remark}
 
-\begin{lemma}[The iterative propositions]
-  \label{lem:gcd-operations}
+\begin{proposition}[Iteration when $\mathcal{R}^\flat(G) \neq \emptyset$]
+  \label{prop:iter1}
   \notready
-  \uses{def:quality, def:gcdsubgraph}
-  \textbf{TRANSCRIBE} --- paper \S8 reduces Proposition 7.1 to three iterative
-  propositions (8.1, 8.2, 8.3), proved in \S\S12--14, with supporting lemmas 8.4 and 8.5
-  proved in \S\S9--10 and preparatory material in \S11.
+  \uses{def:quality}
+  \textbf{Transcribed} --- Proposition 8.1. If $\mathcal{R}(G) \subseteq \{p > 10^{2000}\}$
+  and $\mathcal{R}^\flat(G) \neq \emptyset$, there is a GCD subgraph with
+  $P \subsetneq P' \subseteq P \cup \mathcal{R}(G)$,
+  $\mathcal{R}(G') \subsetneq \mathcal{R}(G)$ and
+  $\min\{1, \delta'/\delta\}\, q(G')/q(G) \geq 2^N$, where
+  $N = \#\{p \in P'\setminus P : f'(p) \neq g'(p)\}$.
+\end{proposition}
+
+\begin{proposition}[Iteration when $\mathcal{R}^\flat(G) = \emptyset$]
+  \label{prop:iter2}
+  \notready
+  \uses{def:quality}
+  \textbf{Transcribed} --- Proposition 8.2. Under
+  $\mathcal{R}(G) \subseteq \{p > 10^{2000}\}$, $\mathcal{R}^\flat(G) = \emptyset$ and
+  $\mathcal{R}^\sharp(G) \neq \emptyset$, one gets $P \subsetneq P' \subseteq P \cup
+  \mathcal{R}(G)$, $\mathcal{R}(G') \subsetneq \mathcal{R}(G)$ and $q(G') \geq q(G)$.
+\end{proposition}
+
+\begin{proposition}[Bounded quality loss for small primes]
+  \label{prop:small-primes}
+  \notready
+  \uses{def:quality}
+  \textbf{Transcribed} --- Proposition 8.3. From a graph with trivial set of primes one
+  reaches $P' \subseteq \{p \leq 10^{2000}\}$ and
+  $\mathcal{R}(G') \subseteq \{p > 10^{2000}\}$ at a cost
+  $\min\{1,\delta'/\delta\}\, q(G')/q(G) \geq 10^{-10^{3000}}$ --- enormous, but absolute.
+\end{proposition}
+
+\begin{lemma}[Removing $\mathcal{R}(G)$ from $L_t$]
+  \label{lem:cosmetic}
+  \notready
+  \uses{def:section5, def:quality}
+  \textbf{Transcribed} --- Lemma 8.4. For $t \geq 300$, $\mathcal{R}^\flat(G) = \emptyset$
+  and $\delta \geq (10/t)^{50}$, the hypothesis $L_t(v,w) \geq 10$ can be strengthened to
+  a sum over primes outside $\mathcal{R}(G)$ exceeding $5$, at the cost of half the
+  quality.
+\end{lemma}
+
+\begin{lemma}[Subgraph with high-degree vertices]
+  \label{lem:high-degree}
+  \notready
+  \uses{def:quality}
+  \textbf{Transcribed} --- Lemma 8.5. Both sides can be regularised without losing quality
+  or density. This is how conclusions (b) and (c) of Theorem \ref{thm:gcd-iteration} are
+  obtained from (a) and (d) alone.
 \end{lemma}
 
 \begin{theorem}[Existence of a good GCD subgraph]
   \label{thm:gcd-iteration}
   \notready
-  \uses{def:quality, def:gcdsubgraph, def:section5}
+  \uses{def:quality, def:gcdsubgraph, def:section5, prop:iter1, prop:iter2,
+        prop:small-primes, lem:cosmetic, lem:high-degree}
   \textbf{Transcribed} --- Proposition 7.1. Let $G$ have trivial set of primes, edge
   density $\delta > 0$, every edge satisfying $L_t(v,w) \geq 10$, and
   $t \geq 10\delta^{-1/50}$ with $t > 10^{2000}$. Then $G$ has a GCD subgraph $G'$ of
