@@ -809,13 +809,36 @@ which the estimate holds.
   to Proposition 5.4. Its definitions are now transcribed; its proof is not.
 \end{theorem}
 
-\begin{definition}[Quality]
+\begin{definition}[Prime-power subgraphs, and the quantities of a GCD graph]
   \label{def:quality}
-  \notready
+  \lean{DuffinSchaeffer.GCDGraph.powPart, DuffinSchaeffer.GCDGraph.edgeDensity,
+        DuffinSchaeffer.GCDGraph.neighborsV, DuffinSchaeffer.GCDGraph.R,
+        DuffinSchaeffer.GCDGraph.Rsharp, DuffinSchaeffer.GCDGraph.quality}
+  \leanok
   \uses{def:gcdgraph}
-  \textbf{TRANSCRIBE} --- paper \S7. The numerical invariant of a GCD graph that the
-  compression argument increases at each step. Not yet transcribed.
+  \textbf{Transcribed} --- Definitions 6.5 and 6.6. Writing $V_{p^k}$ for the $v \in V$
+  with $p^k \,\|\, v$, the edge density is $\delta = \mu(E)/(\mu(V)\mu(W))$, the
+  neighbourhoods are the usual ones, $\mathcal{R}(G)$ is the set of primes outside $P$ dividing
+  some $\gcd(v,w)$ along an edge, $\mathcal{R}^{\sharp}(G)$ those $p \in \mathcal{R}(G)$ for which a single
+  valuation already carries all but $10^{40}/p$ of the mass on both sides, and the
+  \emph{quality} is
+  \[ q(G) := \delta^{10}\mu(V)\mu(W)
+     \prod_{p \in P}
+     \frac{p^{|f(p)-g(p)|}}
+          {\bigl(1 - \mathbf{1}[f(p)=g(p)\geq 1]/p\bigr)^2
+           \bigl(1 - p^{-31/30}\bigr)^{10}} . \]
 \end{definition}
+
+\begin{remark}
+  The indicator is on $f(p) = g(p) \geq 1$, not on $f(p) = g(p)$. That distinction is
+  invisible in the published PDF's extracted text --- both readings parse --- and was
+  settled by fetching the arXiv \LaTeX{} source. Guessing would have been a coin flip, and
+  the paper's own remark ties this factor to the $\varphi(q)/q$ weighting of the vertices,
+  so it is load-bearing rather than cosmetic.
+
+  Note also that the quality lives in \S6, not \S7: this blueprint has now guessed its
+  location wrongly twice.
+\end{remark}
 
 \begin{lemma}[The iterative propositions]
   \label{lem:gcd-operations}

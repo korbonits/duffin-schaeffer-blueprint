@@ -97,6 +97,77 @@ theorem isSubgraph_trans {G₁ G₂ G₃ : GCDGraph} (h₁ : G₁.IsSubgraph G�
 
 end GCDGraph
 
+/-! ### Definition 6.5: subgraphs cut out by prime-power divisibility -/
+
+namespace GCDGraph
+
+open Classical in
+/-- `V_{p^k}`: the members of a set whose `p`-adic valuation is exactly `k`. Note that
+`V_{2^0}` and `V_{3^0}` are different sets. Paper, Definition 6.5(a). -/
+noncomputable def powPart (S : Finset ℕ) (p k : ℕ) : Finset ℕ := {v ∈ S | ExactPow p k v}
+
+open Classical in
+/-- `E(V', W') = E ∩ (V' × W')`. Paper, Definition 6.5(b). -/
+noncomputable def edgesOn (G : GCDGraph) (V' W' : Finset ℕ) : Finset (ℕ × ℕ) :=
+  {e ∈ G.E | e.1 ∈ V' ∧ e.2 ∈ W'}
+
+/-! ### Definition 6.6: the quantities attached to a GCD graph -/
+
+/-- `μ(S) = ∑_{v ∈ S} μ(v)`. -/
+noncomputable def measureSet (G : GCDGraph) (S : Finset ℕ) : ℝ≥0 := ∑ v ∈ S, G.μ v
+
+/-- The edge density `δ(G) = μ(E) / (μ(V)μ(W))`. Division by zero in `ℝ≥0` is zero, so
+this already agrees with the paper's convention that `δ = 0` when `μ(V)` or `μ(W)`
+vanishes. Paper, Definition 6.6(a). -/
+noncomputable def edgeDensity (G : GCDGraph) : ℝ≥0 :=
+  G.edgeMeasure / (G.measureSet G.V * G.measureSet G.W)
+
+open Classical in
+/-- `Γ_G(v) = {w ∈ W : (v,w) ∈ E}`. Paper, Definition 6.6(b). -/
+noncomputable def neighborsV (G : GCDGraph) (v : ℕ) : Finset ℕ := {w ∈ G.W | (v, w) ∈ G.E}
+
+open Classical in
+/-- `Γ_G(w) = {v ∈ V : (v,w) ∈ E}`. Paper, Definition 6.6(b). -/
+noncomputable def neighborsW (G : GCDGraph) (w : ℕ) : Finset ℕ := {v ∈ G.V | (v, w) ∈ G.E}
+
+/-- `R(G)`: the primes dividing some gcd along an edge that `P` has not yet accounted for.
+Paper, Definition 6.6(c). The paper writes `{p ∉ P : ...}`; primality is left implicit
+there and made explicit here. -/
+def R (G : GCDGraph) : Set ℕ :=
+  {p | Nat.Prime p ∧ p ∉ G.P ∧ ∃ e ∈ G.E, p ∣ Nat.gcd e.1 e.2}
+
+/-- `R♯(G)`: those `p ∈ R(G)` for which some single `p`-adic valuation already carries
+almost all of the mass on both sides. Paper, Definition 6.6(c). -/
+noncomputable def Rsharp (G : GCDGraph) : Set ℕ :=
+  {p ∈ G.R | ∃ k : ℕ,
+    1 - (10 : ℝ) ^ (40 : ℕ) / p ≤ (G.measureSet (powPart G.V p k) : ℝ) / (G.measureSet G.V : ℝ) ∧
+    1 - (10 : ℝ) ^ (40 : ℕ) / p ≤ (G.measureSet (powPart G.W p k) : ℝ) / (G.measureSet G.W : ℝ)}
+
+/-- `R♭(G) = R(G) \ R♯(G)`. Paper, Definition 6.6(c). -/
+noncomputable def Rflat (G : GCDGraph) : Set ℕ := G.R \ G.Rsharp
+
+open Classical in
+/-- **The quality** (paper, Definition 6.6(d)):
+
+  `q(G) = δ¹⁰ μ(V) μ(W) ∏_{p ∈ P} p^{|f(p)-g(p)|} /
+            ((1 - 1[f(p) = g(p) ≥ 1]/p)² (1 - p^{-31/30})¹⁰)`.
+
+The indicator is on `f(p) = g(p) ≥ 1`, not merely on `f(p) = g(p)`. That distinction is
+invisible in the published PDF's extracted text and was read off the arXiv LaTeX source;
+guessing it would have been a coin flip, and the paper's remark ties this exact factor to
+the `φ(q)/q` weighting of the vertices, so it is load-bearing rather than cosmetic.
+
+The exponent is written `(f p - g p) + (g p - f p)`, which is `|f p - g p|` in `ℕ` with
+truncated subtraction: one of the two summands is always zero. -/
+noncomputable def quality (G : GCDGraph) : ℝ :=
+  (G.edgeDensity : ℝ) ^ (10 : ℕ) * (G.measureSet G.V : ℝ) * (G.measureSet G.W : ℝ) *
+    ∏ p ∈ G.P,
+      (p : ℝ) ^ ((G.f p - G.g p) + (G.g p - G.f p)) /
+        ((1 - (if G.f p = G.g p ∧ 1 ≤ G.f p then (1 : ℝ) else 0) / (p : ℝ)) ^ (2 : ℕ) *
+          (1 - 1 / (p : ℝ) ^ ((31 : ℝ) / 30)) ^ (10 : ℕ))
+
+end GCDGraph
+
 /-- **Proposition 6.3** (edge set bound), the form in which the whole paper is stated.
 
 `TRANSCRIBE` is discharged for the *definitions*; this statement is the paper's, but the
