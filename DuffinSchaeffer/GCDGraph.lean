@@ -28,6 +28,18 @@ open scoped BigOperators NNReal
 
 namespace DuffinSchaeffer
 
+/-- `ab / gcd(a,b)²`: what is left of `ab` after the common factor is removed twice. -/
+def coprimePart (a b : ℕ) : ℕ := (a * b) / (Nat.gcd a b) ^ 2
+
+open Classical in
+/-- `L_t(a,b) = ∑_{p ∣ ab/gcd(a,b)², p ≥ t} 1/p`. Paper (5.1). -/
+noncomputable def LSum (t : ℝ) (a b : ℕ) : ℝ :=
+  ∑ p ∈ (coprimePart a b).primeFactors.filter (fun p : ℕ => t ≤ (p : ℝ)), (1 : ℝ) / p
+
+/-- `v` with its `P`-part removed: `v / ∏_{p ∈ P} p^{e p}`. Proposition 7.1(d)(ii) writes
+`v = v' ∏_{p ∈ P'} p^{f'(p)}`; this is `v'`. -/
+def stripPrimes (v : ℕ) (P : Finset ℕ) (e : ℕ → ℕ) : ℕ := v / ∏ p ∈ P, p ^ e p
+
 /-- `ExactPow p k n` is the paper's `p ^ k ‖ n`: the exact power of `p` dividing `n`. -/
 def ExactPow (p k n : ℕ) : Prop := p ^ k ∣ n ∧ ¬ p ^ (k + 1) ∣ n
 
@@ -167,6 +179,37 @@ noncomputable def quality (G : GCDGraph) : ℝ :=
           (1 - 1 / (p : ℝ) ^ ((31 : ℝ) / 30)) ^ (10 : ℕ))
 
 end GCDGraph
+
+/-- **Proposition 7.1** (existence of a good GCD subgraph).
+
+The hinge of the whole argument: from a GCD graph with trivial prime set, every edge
+sharing many primes above `t`, and `t` large relative to the edge density, one extracts a
+subgraph that is *structured* -- no unaccounted primes, both sides of the bipartition
+almost regular -- while either gaining a factor `δ t⁵⁰` in quality, or gaining a constant
+factor and leaving the edges still sharing many primes after the `P'`-part is stripped.
+
+Sections 8-14 prove it, and Proposition 6.3 follows from it (section 7).
+
+The implied constant is absolute, so it is quantified outermost. In particular the `δ`
+in (d)(i) *multiplies*: the published PDF renders that clause as `q(G')≫δt50q(G)`, which
+reads naturally as `≫_δ`, a constant depending on `δ`. The arXiv source says
+`\gg \delta t^{50}`. Two very different statements, and the weaker reading would have
+silently thrown away the density gain the compression argument exists to produce. -/
+proof_wanted exists_good_subgraph :
+    ∃ c : ℝ, 0 < c ∧ ∀ (G : GCDGraph) (t : ℝ),
+      G.P = ∅ →
+      0 < G.edgeDensity →
+      (∀ e ∈ G.E, 10 ≤ LSum t e.1 e.2) →
+      10 * ((G.edgeDensity : ℝ)) ^ (-(1 : ℝ) / 50) ≤ t →
+      (10 : ℝ) ^ (2000 : ℕ) < t →
+      ∃ G' : GCDGraph, G'.IsSubgraph G ∧ 0 < G'.edgeDensity ∧ G'.R = ∅ ∧
+        (∀ v ∈ G'.V, 9 * (G'.edgeDensity : ℝ) / 10 * (G'.measureSet G'.W : ℝ)
+          ≤ (G'.measureSet (G'.neighborsV v) : ℝ)) ∧
+        (∀ w ∈ G'.W, 9 * (G'.edgeDensity : ℝ) / 10 * (G'.measureSet G'.V : ℝ)
+          ≤ (G'.measureSet (G'.neighborsW w) : ℝ)) ∧
+        (c * (G.edgeDensity : ℝ) * t ^ (50 : ℕ) * G.quality ≤ G'.quality ∨
+          (c * G.quality ≤ G'.quality ∧
+            ∀ e ∈ G'.E, 4 ≤ LSum t (stripPrimes e.1 G'.P G'.f) (stripPrimes e.2 G'.P G'.g)))
 
 /-- **Proposition 6.3** (edge set bound), the form in which the whole paper is stated.
 

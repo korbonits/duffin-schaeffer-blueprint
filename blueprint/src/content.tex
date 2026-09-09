@@ -849,12 +849,32 @@ which the estimate holds.
   proved in \S\S9--10 and preparatory material in \S11.
 \end{lemma}
 
-\begin{theorem}[The iteration]
+\begin{theorem}[Existence of a good GCD subgraph]
   \label{thm:gcd-iteration}
   \notready
-  \uses{lem:gcd-operations, thm:edge-bound}
-  \textbf{TRANSCRIBE} --- paper \S7, Proposition 7.1: reduction to a good GCD subgraph.
+  \uses{def:quality, def:gcdsubgraph, def:section5}
+  \textbf{Transcribed} --- Proposition 7.1. Let $G$ have trivial set of primes, edge
+  density $\delta > 0$, every edge satisfying $L_t(v,w) \geq 10$, and
+  $t \geq 10\delta^{-1/50}$ with $t > 10^{2000}$. Then $G$ has a GCD subgraph $G'$ of
+  positive edge density with
+  \begin{enumerate}
+    \item $\mathcal{R}(G') = \emptyset$;
+    \item $\mu(\Gamma_{G'}(v)) \geq (9\delta'/10)\mu(W')$ for all $v \in V'$, and
+      symmetrically on the other side;
+    \item either $q(G') \gg \delta t^{50} q(G)$, or $q(G') \gg q(G)$ and every edge still
+      satisfies $L_t(v',w') \geq 4$ after the $P'$-part is stripped off.
+  \end{enumerate}
+  Sections 8--14 prove it; \S7 deduces Proposition 6.3 from it.
 \end{theorem}
+
+\begin{remark}
+  In clause (3) the $\delta$ \emph{multiplies}. The published PDF renders that clause as
+  \texttt{q(G')}$\gg\delta$\texttt{t50q(G)}, which reads naturally as $\gg_\delta$ --- an
+  implied constant depending on $\delta$ --- and the arXiv source settles it as
+  \verb|\gg \delta t^{50}|. The two are very different statements, and the weaker reading
+  would have silently discarded the density gain that the entire compression argument
+  exists to produce.
+\end{remark}
 
 \chapter{Assembly}
 \label{chap:main}

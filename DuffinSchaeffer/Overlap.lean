@@ -48,20 +48,12 @@ Paper, Lemma 5.3. -/
 noncomputable def interactionScale (ψ : ℕ+ → ℝ≥0) (q r : ℕ+) : ℝ :=
   max (((r : ℕ) : ℝ) * (ψ q : ℝ)) (((q : ℕ) : ℝ) * (ψ r : ℝ))
 
-/-- `ab / gcd(a,b)²`: what is left of `ab` after the common factor is removed twice. -/
-def coprimePart (a b : ℕ+) : ℕ := ((a : ℕ) * (b : ℕ)) / (Nat.gcd (a : ℕ) (b : ℕ)) ^ 2
-
-open Classical in
-/-- `L_t(a,b) = ∑_{p ∣ ab/gcd(a,b)², p ≥ t} 1/p`. Paper (5.1). -/
-noncomputable def LSum (t : ℝ) (a b : ℕ+) : ℝ :=
-  ∑ p ∈ (coprimePart a b).primeFactors.filter (fun p : ℕ => t ≤ (p : ℝ)), (1 : ℝ) / p
-
 open Classical in
 /-- `E_t`: pairs of denominators in `[X,Y]` whose gcd is large relative to the interaction
 scale, and which share enough primes above `t`. Paper (5.2). -/
 noncomputable def badPairs (ψ : ℕ+ → ℝ≥0) (X Y : ℕ+) (t : ℝ) : Finset (ℕ+ × ℕ+) :=
   {e ∈ Finset.Icc X Y ×ˢ Finset.Icc X Y |
-    interactionScale ψ e.1 e.2 ≤ t * (Nat.gcd (e.1 : ℕ) (e.2 : ℕ) : ℝ) ∧ 10 ≤ LSum t e.1 e.2}
+    interactionScale ψ e.1 e.2 ≤ t * (Nat.gcd (e.1 : ℕ) (e.2 : ℕ) : ℝ) ∧ 10 ≤ LSum t (e.1 : ℕ) (e.2 : ℕ)}
 
 /-- The weight `μ(q) = φ(q)ψ(q)/q` that section 6 puts on the vertices. -/
 noncomputable def vertexWeight (ψ : ℕ+ → ℝ≥0) (q : ℕ+) : ℝ :=
@@ -82,7 +74,7 @@ proof_wanted pollington_vaughan (ψ : ℕ+ → ℝ≥0) (hψ : ∀ q, (ψ q : �
       (volume (setAq ψ q ∩ setAq ψ r)).toReal ≤
         C * (volume (setAq ψ q)).toReal * (volume (setAq ψ r)).toReal *
           (if ((Nat.gcd (q : ℕ) (r : ℕ) : ℝ)) ≤ interactionScale ψ q r then
-            ∏ p ∈ (coprimePart q r).primeFactors.filter (fun p : ℕ =>
+            ∏ p ∈ (coprimePart (q : ℕ) (r : ℕ)).primeFactors.filter (fun p : ℕ =>
               interactionScale ψ q r / (Nat.gcd (q : ℕ) (r : ℕ) : ℝ) < (p : ℝ)),
               (1 + 1 / (p : ℝ))
           else 0)
