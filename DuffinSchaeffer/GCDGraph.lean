@@ -183,6 +183,16 @@ noncomputable def Rsharp (G : GCDGraph) : Set ℕ :=
 noncomputable def Rflat (G : GCDGraph) : Set ℕ := G.R \ G.Rsharp
 
 open Classical in
+/-- The `P`-product appearing in the quality. Split out because it depends only on the
+multiplicative data `(P, f, g)`, and is therefore *unchanged* under `induced` -- which is
+exactly what makes the quality ratio of an induced subgraph computable. -/
+noncomputable def primeFactor (G : GCDGraph) : ℝ :=
+  ∏ p ∈ G.P,
+    (p : ℝ) ^ ((G.f p - G.g p) + (G.g p - G.f p)) /
+      ((1 - (if G.f p = G.g p ∧ 1 ≤ G.f p then (1 : ℝ) else 0) / (p : ℝ)) ^ (2 : ℕ) *
+        (1 - 1 / (p : ℝ) ^ ((31 : ℝ) / 30)) ^ (10 : ℕ))
+
+open Classical in
 /-- **The quality** (paper, Definition 6.6(d)):
 
   `q(G) = δ¹⁰ μ(V) μ(W) ∏_{p ∈ P} p^{|f(p)-g(p)|} /
@@ -197,10 +207,20 @@ The exponent is written `(f p - g p) + (g p - f p)`, which is `|f p - g p|` in `
 truncated subtraction: one of the two summands is always zero. -/
 noncomputable def quality (G : GCDGraph) : ℝ :=
   (G.edgeDensity : ℝ) ^ (10 : ℕ) * (G.measureSet G.V : ℝ) * (G.measureSet G.W : ℝ) *
-    ∏ p ∈ G.P,
-      (p : ℝ) ^ ((G.f p - G.g p) + (G.g p - G.f p)) /
-        ((1 - (if G.f p = G.g p ∧ 1 ≤ G.f p then (1 : ℝ) else 0) / (p : ℝ)) ^ (2 : ℕ) *
-          (1 - 1 / (p : ℝ) ^ ((31 : ℝ) / 30)) ^ (10 : ℕ))
+    G.primeFactor
+
+/-- The paper's Remark after Definition 6.6: with positive vertex masses,
+`q(G) = μ(E)¹⁰ / (μ(V)⁹ μ(W)⁹) · ∏`. Every quality *ratio* in sections 11-14 is computed
+from this form. -/
+theorem quality_eq (G : GCDGraph) (hV : 0 < G.measureSet G.V)
+    (hW : 0 < G.measureSet G.W) :
+    G.quality = (G.edgeMeasure : ℝ) ^ (10 : ℕ) /
+      ((G.measureSet G.V : ℝ) ^ (9 : ℕ) * (G.measureSet G.W : ℝ) ^ (9 : ℕ)) *
+      G.primeFactor := by
+  have hV' : ((G.measureSet G.V : ℝ)) ≠ 0 := by positivity
+  have hW' : ((G.measureSet G.W : ℝ)) ≠ 0 := by positivity
+  simp only [quality, edgeDensity, NNReal.coe_div, NNReal.coe_mul, div_pow]
+  field_simp
 
 end GCDGraph
 
@@ -320,6 +340,44 @@ theorem special_isSubgraph (G : GCDGraph) (p k l : ℕ) (hp : p.Prime) (hpP : p 
     exact Function.update_of_ne (by rintro rfl; exact hpP hq) _ _
   · intro q hq
     exact Function.update_of_ne (by rintro rfl; exact hpP hq) _ _
+
+@[simp] theorem induced_V (G : GCDGraph) {V' W' : Finset ℕ} (hV : V' ⊆ G.V)
+    (hW : W' ⊆ G.W) : (G.induced V' W' hV hW).V = V' := rfl
+
+@[simp] theorem induced_W (G : GCDGraph) {V' W' : Finset ℕ} (hV : V' ⊆ G.V)
+    (hW : W' ⊆ G.W) : (G.induced V' W' hV hW).W = W' := rfl
+
+@[simp] theorem induced_measureSet (G : GCDGraph) {V' W' : Finset ℕ} (hV : V' ⊆ G.V)
+    (hW : W' ⊆ G.W) (S : Finset ℕ) : (G.induced V' W' hV hW).measureSet S = G.measureSet S :=
+  rfl
+
+@[simp] theorem induced_edgeMeasure (G : GCDGraph) {V' W' : Finset ℕ} (hV : V' ⊆ G.V)
+    (hW : W' ⊆ G.W) :
+    (G.induced V' W' hV hW).edgeMeasure = G.measurePairs (G.edgesOn V' W') := rfl
+
+/-- The `P`-product is untouched by `induced`, because the multiplicative data is. This is
+the whole reason quality *ratios* for induced subgraphs are computable: the factor that
+would be hard to handle simply cancels. -/
+@[simp] theorem induced_primeFactor (G : GCDGraph) {V' W' : Finset ℕ} (hV : V' ⊆ G.V)
+    (hW : W' ⊆ G.W) : (G.induced V' W' hV hW).primeFactor = G.primeFactor := rfl
+
+/-- The quality of an induced subgraph, in the cancellation-free form. Combined with
+`quality_eq` for `G` itself this gives the ratio identity used throughout sections 11-14,
+without ever needing to know that `primeFactor` is nonzero. -/
+theorem quality_induced (G : GCDGraph) {V' W' : Finset ℕ} (hV : V' ⊆ G.V) (hW : W' ⊆ G.W)
+    (hV0 : 0 < G.measureSet V') (hW0 : 0 < G.measureSet W') :
+    (G.induced V' W' hV hW).quality *
+        ((G.measureSet V' : ℝ) ^ (9 : ℕ) * (G.measureSet W' : ℝ) ^ (9 : ℕ))
+      = (G.measurePairs (G.edgesOn V' W') : ℝ) ^ (10 : ℕ) * G.primeFactor := by
+  have hV1 : 0 < (G.induced V' W' hV hW).measureSet (G.induced V' W' hV hW).V := hV0
+  have hW1 : 0 < (G.induced V' W' hV hW).measureSet (G.induced V' W' hV hW).W := hW0
+  have h := (G.induced V' W' hV hW).quality_eq hV1 hW1
+  rw [h]
+  simp only [induced_V, induced_W, induced_measureSet, induced_edgeMeasure,
+    induced_primeFactor]
+  have hV' : ((G.measureSet V' : ℝ)) ≠ 0 := by positivity
+  have hW' : ((G.measureSet W' : ℝ)) ≠ 0 := by positivity
+  field_simp
 
 theorem induced_isSubgraph (G : GCDGraph) (V' W' : Finset ℕ) (hV : V' ⊆ G.V)
     (hW : W' ⊆ G.W) : (G.induced V' W' hV hW).IsSubgraph G := by

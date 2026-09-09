@@ -890,6 +890,27 @@ which the estimate holds.
   (ii), which is exactly Lemma \ref{lem:exactpow-gcd}.
 \end{proof}
 
+\begin{lemma}[The quality in ratio form]
+  \label{lem:quality-eq}
+  \lean{DuffinSchaeffer.GCDGraph.primeFactor, DuffinSchaeffer.GCDGraph.quality_eq,
+        DuffinSchaeffer.GCDGraph.quality_induced}
+  \leanok
+  \uses{def:quality, lem:induced}
+  With positive vertex masses, $q(G) = \mu(E)^{10}/(\mu(V)^9\mu(W)^9) \cdot \Pi$, where
+  $\Pi$ is the product over $P$. For an induced subgraph $\Pi$ is unchanged, so
+  $q(G')\,\mu(V')^9\mu(W')^9 = \mu(E')^{10}\,\Pi$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved} --- the Remark following Definition 6.6, plus its consequence for
+  induced subgraphs. The $P$-product is split out as \texttt{primeFactor} precisely
+  because it depends only on the multiplicative data and is therefore untouched by
+  \texttt{induced}: the factor that would be awkward to handle simply cancels, and the
+  ratio identities of \S\S11--14 never need to know it is nonzero. The statement is given
+  in cancellation-free form for the same reason.
+\end{proof}
+
 \begin{lemma}[Quality variation for special subgraphs]
   \label{lem:special-quality}
   \notready
