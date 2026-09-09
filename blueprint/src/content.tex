@@ -872,12 +872,36 @@ which the estimate holds.
   it rather than inherited.
 \end{proof}
 
+\begin{lemma}[Special GCD subgraphs]
+  \label{lem:special}
+  \lean{DuffinSchaeffer.GCDGraph.special, DuffinSchaeffer.GCDGraph.special_isSubgraph}
+  \leanok
+  \uses{def:gcdgraph, lem:exactpow-gcd}
+  \textbf{Transcribed and proved} --- Definition 6.5(c). For a prime $p \notin P$,
+  $G_{p^k,p^\ell} = (\mu, V_{p^k}, W_{p^\ell}, E_{p^k,p^\ell}, P \cup \{p\},
+  f_{p^k}, g_{p^\ell})$ is a GCD subgraph of $G$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \textbf{Proved.} Unlike Lemma \ref{lem:induced} this construction \emph{adds} a prime,
+  so three conditions of Definition \ref{def:gcdgraph} must be checked rather than
+  inherited. Two are immediate from the definition of $V_{p^k}$; the third is condition
+  (ii), which is exactly Lemma \ref{lem:exactpow-gcd}.
+\end{proof}
+
 \begin{lemma}[Quality variation for special subgraphs]
   \label{lem:special-quality}
   \notready
-  \uses{def:quality, lem:exactpow-gcd}
-  \textbf{Not yet stated} --- Lemma 11.1. An exact identity for
-  $q(G_{p^k,p^\ell})/q(G)$, which needs the Definition 6.5(c) constructor first.
+  \uses{def:quality, lem:special}
+  \textbf{Transcribed} --- Lemma 11.1. The exact identity
+  \[ \frac{q(G_{p^k,p^\ell})}{q(G)}
+     = \Bigl(\frac{\mu(E_{p^k,p^\ell})}{\mu(E)}\Bigr)^{10}
+       \Bigl(\frac{\mu(V)}{\mu(V_{p^k})}\Bigr)^{9}
+       \Bigl(\frac{\mu(W)}{\mu(W_{p^\ell})}\Bigr)^{9}
+       \frac{p^{|k-\ell|}}{(1-\mathbf{1}[k=\ell\geq1]/p)^2(1-p^{-31/30})^{10}} . \]
+  The paper calls this immediate from the definitions; in Lean the work is that the
+  $P$-products on the two sides differ by exactly the new prime's factor.
 \end{lemma}
 
 \begin{proposition}[Iteration when $\mathcal{R}^\flat(G) \neq \emptyset$]

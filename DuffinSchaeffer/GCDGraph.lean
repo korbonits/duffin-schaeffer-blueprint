@@ -240,6 +240,87 @@ noncomputable def induced (G : GCDGraph) (V' W' : Finset ℕ) (hV : V' ⊆ G.V)
   f_exact := fun p hp hne v hv => G.f_exact p hp hne v (hV hv)
   g_exact := fun p hp hne w hw => G.g_exact p hp hne w (hW hw)
 
+open Classical in
+/-- **Definition 6.5(c)**: the special GCD subgraph `G_{p^k, p^ℓ}`, for a prime `p` not
+already in `P`.
+
+Unlike `induced` this *adds* a prime, so three conditions of Definition 6.1 must be checked
+for it rather than inherited. Two are immediate from `powPart`; the third, condition (ii),
+is `ExactPow.gcd`. -/
+noncomputable def special (G : GCDGraph) (p k l : ℕ) (hp : p.Prime) (hpP : p ∉ G.P) :
+    GCDGraph where
+  μ := G.μ
+  V := powPart G.V p k
+  W := powPart G.W p l
+  E := G.edgesOn (powPart G.V p k) (powPart G.W p l)
+  P := insert p G.P
+  f := Function.update G.f p k
+  g := Function.update G.g p l
+  V_pos := fun v hv => G.V_pos v (Finset.mem_filter.mp hv).1
+  W_pos := fun w hw => G.W_pos w (Finset.mem_filter.mp hw).1
+  E_subset := fun e he => by
+    simp only [edgesOn, Finset.mem_filter] at he
+    exact ⟨he.2.1, he.2.2⟩
+  P_prime := by
+    intro q hq
+    rcases Finset.mem_insert.mp hq with rfl | hqP
+    · exact hp
+    · exact G.P_prime q hqP
+  f_dvd := by
+    intro q hq v hv
+    rcases Finset.mem_insert.mp hq with rfl | hqP
+    · rw [Function.update_self]
+      exact (Finset.mem_filter.mp hv).2.1
+    · rw [Function.update_of_ne (by rintro rfl; exact hpP hqP)]
+      exact G.f_dvd q hqP v (Finset.mem_filter.mp hv).1
+  g_dvd := by
+    intro q hq w hw
+    rcases Finset.mem_insert.mp hq with rfl | hqP
+    · rw [Function.update_self]
+      exact (Finset.mem_filter.mp hw).2.1
+    · rw [Function.update_of_ne (by rintro rfl; exact hpP hqP)]
+      exact G.g_dvd q hqP w (Finset.mem_filter.mp hw).1
+  edge_gcd := by
+    intro q hq e he
+    simp only [edgesOn, Finset.mem_filter] at he
+    rcases Finset.mem_insert.mp hq with rfl | hqP
+    · rw [Function.update_self, Function.update_self]
+      have hv := Finset.mem_filter.mp he.2.1
+      have hw := Finset.mem_filter.mp he.2.2
+      exact ExactPow.gcd hp (G.V_pos _ hv.1).ne' (G.W_pos _ hw.1).ne' hv.2 hw.2
+    · rw [Function.update_of_ne (by rintro rfl; exact hpP hqP),
+        Function.update_of_ne (by rintro rfl; exact hpP hqP)]
+      exact G.edge_gcd q hqP e he.1
+  f_exact := by
+    intro q hq hne v hv
+    rcases Finset.mem_insert.mp hq with rfl | hqP
+    · rw [Function.update_self]
+      exact (Finset.mem_filter.mp hv).2
+    · rw [Function.update_of_ne (by rintro rfl; exact hpP hqP)] at hne ⊢
+      rw [Function.update_of_ne (by rintro rfl; exact hpP hqP)] at hne
+      exact G.f_exact q hqP hne v (Finset.mem_filter.mp hv).1
+  g_exact := by
+    intro q hq hne w hw
+    rcases Finset.mem_insert.mp hq with rfl | hqP
+    · rw [Function.update_self]
+      exact (Finset.mem_filter.mp hw).2
+    · rw [Function.update_of_ne (by rintro rfl; exact hpP hqP)] at hne ⊢
+      rw [Function.update_of_ne (by rintro rfl; exact hpP hqP)] at hne
+      exact G.g_exact q hqP hne w (Finset.mem_filter.mp hw).1
+
+open Classical in
+theorem special_isSubgraph (G : GCDGraph) (p k l : ℕ) (hp : p.Prime) (hpP : p ∉ G.P) :
+    (G.special p k l hp hpP).IsSubgraph G := by
+  refine ⟨rfl, fun v hv => (Finset.mem_filter.mp hv).1,
+    fun w hw => (Finset.mem_filter.mp hw).1, ?_, Finset.subset_insert _ _, ?_, ?_⟩
+  · intro e he
+    simp only [special, edgesOn, Finset.mem_filter] at he
+    exact he.1
+  · intro q hq
+    exact Function.update_of_ne (by rintro rfl; exact hpP hq) _ _
+  · intro q hq
+    exact Function.update_of_ne (by rintro rfl; exact hpP hq) _ _
+
 theorem induced_isSubgraph (G : GCDGraph) (V' W' : Finset ℕ) (hV : V' ⊆ G.V)
     (hW : W' ⊆ G.W) : (G.induced V' W' hV hW).IsSubgraph G := by
   refine ⟨rfl, hV, hW, ?_, Finset.Subset.refl _, fun _ _ => rfl, fun _ _ => rfl⟩
@@ -253,14 +334,28 @@ end GCDGraph
 
 The six results §§12-14 draw on. `induced` above is the constructor they all use. -/
 
-/- **Lemma 11.1** (quality variation for special GCD subgraphs) is not stated yet. It is
-an exact identity for `q(G_{p^k,p^ℓ})/q(G)`, so it needs the Definition 6.5(c) constructor
-`G_{p^k,p^ℓ}`, which adds a prime to `P` and therefore has real proof obligations rather
-than inherited ones. `ExactPow.gcd` above is the substantive one; the rest is bookkeeping.
+/-- **Lemma 11.1** (quality variation for special GCD subgraphs).
 
-An earlier draft of this file put a `proof_wanted ... : True` here as a placeholder. That
-is worse than nothing: it is a node that can never fail, occupying a slot in the count
-while asserting nothing. Better to leave the gap named in a comment. -/
+An exact identity for the quality ratio of `G_{p^k,p^ℓ}`. The paper calls it immediate
+from the definitions; in Lean that means unfolding `quality` on both sides, and the work is
+that the `P`-products differ by exactly the new prime's factor.
+
+Statable at last, now that `special` exists. -/
+proof_wanted quality_special (G : GCDGraph) (p k l : ℕ) (hp : p.Prime) (hpP : p ∉ G.P)
+    (hnt : G.Nontrivial)
+    (hV : 0 < G.measureSet (GCDGraph.powPart G.V p k))
+    (hW : 0 < G.measureSet (GCDGraph.powPart G.W p l)) :
+    (G.special p k l hp hpP).quality / G.quality =
+      ((G.measurePairs
+          (G.edgesOn (GCDGraph.powPart G.V p k) (GCDGraph.powPart G.W p l)) : ℝ)
+        / (G.edgeMeasure : ℝ)) ^ (10 : ℕ) *
+      ((G.measureSet G.V : ℝ)
+        / (G.measureSet (GCDGraph.powPart G.V p k) : ℝ)) ^ (9 : ℕ) *
+      ((G.measureSet G.W : ℝ)
+        / (G.measureSet (GCDGraph.powPart G.W p l) : ℝ)) ^ (9 : ℕ) *
+      ((p : ℝ) ^ ((k - l) + (l - k)) /
+        ((1 - (if k = l ∧ 1 ≤ k then (1 : ℝ) else 0) / (p : ℝ)) ^ (2 : ℕ) *
+          (1 - 1 / (p : ℝ) ^ ((31 : ℝ) / 30)) ^ (10 : ℕ)))
 
 /-- **Lemma 11.2** (one subgraph must have limited quality loss). Pigeonhole across a
 product of partitions: some cell keeps a `(IJ)⁻¹⁰` share of the quality and a `(IJ)⁻¹`
